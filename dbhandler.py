@@ -12,8 +12,11 @@ class DBhandle:
             self.handle[key] = value
         else:
             print("db not live")
-    def get(self, key):
+    def get(self, key, default = None):
         if self.live:
-            return self.handle[key]
+            if key in self.handle.keys():
+                return self.handle[key]
+            else:
+                return default
     def close(self):
         self.handle.close()
