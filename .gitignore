@@ -1,5 +1,5 @@
 # my ignores
-/dbfolder/info.json
+dbfolder/info.json
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
