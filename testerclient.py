@@ -5,13 +5,10 @@ from dbhandler import DBhandle
 import discord
 from discord.ext import commands
 
-info = json.load(open("dbfolder/info.json"))
+info = json.load(open("info.json"))
 config = json.load(open("dbfolder/config.json"))
 
-intents = discord.Intents.default()
-intents.message_content = True
-intents.guilds = True
-intents.members = True
+intents = discord.Intents.all()
 
 bot = commands.Bot(command_prefix='!', intents=intents)
 
@@ -42,11 +39,10 @@ async def on_message(message:str):
 def count_swears(string:str):
     swear_words = ("fuck", "shit", "uwu")
     counts = (string.lower().count(s) for s in swear_words)
-    z = list(zip(swear_words, counts))
     ret = {}
-    for i in range(len(z)):
-        if z[i][1] > 0:
-            ret[z[i][0]] = z[i][1]
+    for swear, count in list(zip(swear_words, counts)):
+        if count > 0:
+            ret[swear] = count
     return ret
 
 @bot.command(name = "bonk", help='bonk a person being indecorous')

@@ -20,3 +20,4 @@ class DBhandle:
                 return default
     def close(self):
         self.handle.close()
+        self.live = False
