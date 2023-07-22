@@ -18,9 +18,7 @@ RUN COMPARCH=x86_64; \
 
 ENV PATH $CONDA_DIR/bin:$PATH
 
-RUN git clone https://github.com/Luke-Skynet/discord-bot.git ~/discord-bot; \
-    cd ~/discord-bot;
+RUN git clone https://github.com/Luke-Skynet/discord-bot.git ~/discord-bot;
 
 RUN conda install -y pip; \
-    pip install -r ~/discord-bot/requirements.txt;
-
+    pip install -r ~/discord-bot/environment/requirements.txt;
