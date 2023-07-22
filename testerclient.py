@@ -1,19 +1,74 @@
 import json
+import asyncio
+import yt_dlp
 
 from dbhandler import DBhandle
 
+
 import discord
 from discord.ext import commands
+
 
 info = json.load(open("info.json"))
 config = json.load(open("dbfolder/config.json"))
 
 intents = discord.Intents.all()
 
-bot = commands.Bot(command_prefix='!', intents=intents)
+bot = commands.Bot(command_prefix=commands.when_mentioned_or("!"), intents=intents)
 
 guild:discord.Guild = None
 commmand_channel:int = config["commands-channel-id"]
+
+
+'''stream stuff'''
+discord.opus.load_opus("/opt/homebrew/Cellar/opus/1.4/lib/libopus.0.dylib")
+
+yt_dlp.utils.bug_reports_message = lambda: ''
+
+ytdl_format_options = {
+    'format': 'bestaudio/best',
+    'outtmpl': '%(extractor)s-%(id)s-%(title)s.%(ext)s',
+    'restrictfilenames': True,
+    'noplaylist': True,
+    'nocheckcertificate': True,
+    'ignoreerrors': False,
+    'logtostderr': False,
+    'quiet': True,
+    'no_warnings': True,
+    'default_search': 'auto',
+    'source_address': '0.0.0.0',  # bind to ipv4 since ipv6 addresses cause issues sometimes
+}
+
+ffmpeg_options = {
+    'options': '-vn',
+    "before_options": "-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5",
+}
+
+ytdl = yt_dlp.YoutubeDL(ytdl_format_options)
+
+class YTDLSource(discord.PCMVolumeTransformer):
+    def __init__(self, source, *, data, volume=1):
+        super().__init__(source, volume)
+
+        self.data = data
+
+        self.title = data.get('title')
+        self.url = data.get('url')
+
+    @classmethod
+    async def from_url(cls, url, *, loop=None, stream=False):
+        loop = loop or asyncio.get_event_loop()
+        data = await loop.run_in_executor(None, lambda: ytdl.extract_info(url, download=not stream))
+
+        if 'entries' in data:
+            # take first item from a playlist
+            data = data['entries'][0]
+
+        filename = data['url'] if stream else ytdl.prepare_filename(data)
+        return cls(discord.FFmpegPCMAudio(filename, **ffmpeg_options), data=data)
+
+
+'''Commands'''
 
 @bot.event
 async def on_ready():
@@ -23,7 +78,7 @@ async def on_ready():
         print("Error: guild not found")
         exit()
     else:
-        print(f"Update: {bot.user} connected to guild: {str(guild)}")
+        print(f"Update: {bot.user} registered guild: {str(guild)}")
 
 @bot.event
 async def on_message(message:str):
@@ -34,7 +89,8 @@ async def on_message(message:str):
     if swears:
         await message.channel.send(author + " has said the following swear words: " + str(swears))
     
-    await bot.process_commands(message)
+    if message.channel.id == commmand_channel:
+        await bot.process_commands(message)
 
 def count_swears(string:str):
     swear_words = ("fuck", "shit", "uwu")
@@ -47,10 +103,6 @@ def count_swears(string:str):
 
 @bot.command(name = "bonk", help='bonk a person being indecorous')
 async def bonk(ctx:commands.Context, *arg:str):
-    if ctx.channel.id != commmand_channel:
-        await ctx.send(f"Please direct commands to the <#{commmand_channel}> channel")
-        return
-    
     for user in arg:
         if user == "<@" + str(bot.user.id) + ">":
             author = "<@" + str(ctx.message.author.id) + ">"
@@ -66,5 +118,40 @@ async def bonk(ctx:commands.Context, *arg:str):
         handle.update(user, bonks)
         handle.close()
         await ctx.send(f"{user} has been bonked {str(bonks)} time{'s' if bonks > 1 else ''}!")
+
+'''Voice Commands'''
+
+@bot.command(name='join', help="add bot to user's current channel")
+async def join(ctx:commands.Context):
+    if ctx.author.voice is None:
+        await ctx.send("You are not connected to a voice channel.")
+    else:
+        channel = ctx.author.voice.channel
+        if ctx.voice_client is not None:
+            return await ctx.voice_client.move_to(channel)
+        await channel.connect()
+
+@bot.command(name='leave', help="disconnect bot from current channel")
+async def leave(ctx:commands.Context):
+    await ctx.voice_client.disconnect()
+
+@bot.command(name="play")
+async def play(ctx:commands.Context, *args):
+    if len(args) > 0:
+        async with ctx.typing():
+            player = await YTDLSource.from_url(args[0], loop=bot.loop, stream=True)
+            ctx.voice_client.play(player, after=lambda e: print(f'Player error: {e}') if e else None)
+        await ctx.send(f'Now playing: {player.title}')
+    else:
+        if ctx.voice_client and ctx.voice_client.is_paused():
+            ctx.voice_client.resume()
+            await ctx.send("Resume Confirmed")
+
+@bot.command(name="pause")
+async def pause(ctx):
+    if ctx.voice_client and ctx.voice_client.is_playing():
+        ctx.voice_client.pause()
+        await ctx.send("Pause Confirmed")
+
 
 bot.run(info["key"])
