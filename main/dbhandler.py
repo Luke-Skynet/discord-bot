@@ -5,7 +5,7 @@ class DBhandle:
         self.handle = None
         self.live = False
     def open(self):
-        self.handle = shelve.open("dbfolder/localdict")
+        self.handle = shelve.open("/database/localdict")
         self.live = True
     def update(self, key, value):
         if self.live:

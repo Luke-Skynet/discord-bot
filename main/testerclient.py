@@ -9,8 +9,8 @@ import discord
 from discord.ext import commands
 
 
-info = json.load(open("info.json"))
-config = json.load(open("dbfolder/config.json"))
+info = json.load(open("jsons/info.json"))
+config = json.load(open("jsons/config.json"))
 
 intents = discord.Intents.all()
 
@@ -21,7 +21,8 @@ commmand_channel:int = config["commands-channel-id"]
 
 
 '''stream stuff'''
-discord.opus.load_opus("/opt/homebrew/Cellar/opus/1.4/lib/libopus.0.dylib")
+
+discord.opus.load_opus(config["opus-dir"])
 
 yt_dlp.utils.bug_reports_message = lambda: ''
 
@@ -101,7 +102,7 @@ def count_swears(string:str):
             ret[swear] = count
     return ret
 
-@bot.command(name = "bonk", help='bonk a person being indecorous')
+@bot.command(name = "bonk", help='bonk a person being indecorous', alias = ("b",))
 async def bonk(ctx:commands.Context, *arg:str):
     for user in arg:
         if user == "<@" + str(bot.user.id) + ">":
