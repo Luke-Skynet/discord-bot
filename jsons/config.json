@@ -1,7 +1,6 @@
 {
     "commands-channel-id": 1130963992173613116,
-    "opus-dir":"/opt/homebrew/Cellar/opus/1.4/lib/libopus.0.dylib",
-
+    "opus-dir":"/lib/aarch64-linux-gnu/libopus.so.0",
     "bonk-cooldown":30,
     "bonk-effect-time":60
 }
