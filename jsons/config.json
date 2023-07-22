@@ -1,6 +1,7 @@
 {
-    "commands-channel-id": 1130963992173613116,
+    "root-dir":"~/",
     "opus-dir":"/lib/aarch64-linux-gnu/libopus.so.0",
+    "commands-channel-id": 1130963992173613116,
     "bonk-cooldown":30,
     "bonk-effect-time":60
 }
