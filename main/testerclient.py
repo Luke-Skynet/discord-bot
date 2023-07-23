@@ -9,8 +9,8 @@ import discord
 from discord.ext import commands
 
 
-info = json.load(open("jsons/info.json"))
-config = json.load(open("jsons/config.json"))
+info = json.load(open("/root/discord-bot/jsons/info.json"))
+config = json.load(open("/root/discord-bot/jsons/config.json"))
 
 intents = discord.Intents.all()
 
