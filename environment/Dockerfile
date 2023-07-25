@@ -9,6 +9,8 @@ RUN apt update && apt upgrade -y \
     && apt clean \
     && rm -rf /var/lib/apt/lists/*
 
+ARG DEBIAN_FRONTEND=noninteractive
+
 run curl -fsSL https://pgp.mongodb.com/server-6.0.asc | \
     gpg -o /usr/share/keyrings/mongodb-server-6.0.gpg \
     --dearmor; \
