@@ -2,14 +2,16 @@ import json
 import asyncio
 import yt_dlp
 
+from collections import deque
+
 from dbhandler import DBhandle
 
 import discord
 from discord.ext import commands
+from discord.utils import get
 
-
-info = json.load(open("/root/discord-bot/jsons/info.json"))
-config = json.load(open("/root/discord-bot/jsons/config.json"))
+info = json.load(open("jsons/info.json"))
+config = json.load(open("jsons/config.json"))
 
 bot = commands.Bot(command_prefix=commands.when_mentioned_or("!"), case_insensitive=True, intents=discord.Intents.all())
 
@@ -18,6 +20,8 @@ commmand_channel:int = config["commands-channel-id"]
 
 
 '''stream stuff'''
+
+play_queue = deque()
 
 discord.opus.load_opus(config["opus-dir"])
 
@@ -46,27 +50,21 @@ ytdl = yt_dlp.YoutubeDL(ytdl_format_options)
 
 class YTDLSource(discord.PCMVolumeTransformer):
     def __init__(self, source, *, data, volume=1):
+
         super().__init__(source, volume)
-
         self.data = data
-
         self.title = data.get('title')
         self.url = data.get('url')
 
     @classmethod
-    async def from_url(cls, url, *, loop=None, stream=False):
-        loop = loop or asyncio.get_event_loop()
-        data = await loop.run_in_executor(None, lambda: ytdl.extract_info(url, download=not stream))
-
+    def from_url(cls, url):
+        data = ytdl.extract_info(url, download=False)
         if 'entries' in data:
-            # take first item from a playlist
             data = data['entries'][0]
-
-        filename = data['url'] if stream else ytdl.prepare_filename(data)
+        filename = data['url']
         return cls(discord.FFmpegPCMAudio(filename, **ffmpeg_options), data=data)
-
+    
 '''Commands'''
-
 @bot.event
 async def on_ready():
     print(f'Update: {bot.user} has connected to Discord!')
@@ -117,8 +115,7 @@ async def bonk(ctx:commands.Context, *arg:str):
         await ctx.send(f"{user} has been bonked {str(bonks)} time{'s' if bonks > 1 else ''}!")
 
 '''Voice Commands'''
-
-@bot.command(name='join', help="add bot to user's current channel", aliases = ("start", "j"))
+@bot.command(name='join', help="add bot to user's current channel", aliases = ("come", "j"))
 async def join(ctx:commands.Context):
     if ctx.author.voice is None:
         await ctx.send("You are not connected to a voice channel.")
@@ -130,28 +127,59 @@ async def join(ctx:commands.Context):
             await channel.connect()
         await ctx.send(f"Joining channel: <#{channel.id}>")
 
-@bot.command(name='leave', help="disconnect bot from current channel", aliases = ("quit", "l"))
+@bot.command(name='leave', help="disconnect bot from current channel", aliases = ("quit","go", "l"))
 async def leave(ctx:commands.Context):
     if ctx.voice_client:
         await ctx.send(f"Leaving channel: <#{ctx.voice_client.channel.id}>")
         await ctx.voice_client.disconnect()
 
+
 @bot.command(name="play", help="play a new song or resume a paused song", aliases = ("resume", "p"))
 async def play(ctx:commands.Context, *args):
+    if not ctx.voice_client:
+        await join(ctx)
+        if not ctx.author.voice:
+            return
+    if ctx.voice_client.is_playing():
+        ctx.voice_client.pause()
     if len(args) > 0:
-        async with ctx.typing():
-            player = await YTDLSource.from_url(args[0], loop=bot.loop, stream=True)
-            ctx.voice_client.play(player, after=lambda e: print(f'Player error: {e}') if e else None)
+        player = YTDLSource.from_url(' '.join(args))
+        ctx.voice_client.play(player, after = lambda e: _after(ctx, e))
         await ctx.send(f'Now playing: {player.title}')
     else:
         if ctx.voice_client and ctx.voice_client.is_paused():
             ctx.voice_client.resume()
             await ctx.send("Resume Confirmed")
 
+def _after(ctx: commands.Context, e):
+    if play_queue:
+        next_player = YTDLSource.from_url(play_queue.popleft())
+        ctx.voice_client.play(next_player, after = lambda e: _after(ctx, e))
+        asyncio.run_coroutine_threadsafe(ctx.send(f"Up next: {next_player.title}"), bot.loop)
+    else:
+        asyncio.run_coroutine_threadsafe(ctx.send("No more songs in queue."), bot.loop)
+
+
 @bot.command(name="pause", help="pause the current playing song", aliases = ("stop","s"))
-async def pause(ctx):
+async def pause(ctx:commands.Context):
     if ctx.voice_client and ctx.voice_client.is_playing():
         ctx.voice_client.pause()
         await ctx.send("Pause Confirmed")
+
+@bot.command(name="queue", help="add a song the the play queue", aliases = ("que","q"))
+async def queue(ctx:commands.Context, *args):
+    play_queue.append(' '.join(args))
+    await ctx.send(f"Queueing: {' '.join(args)}")
+
+@bot.command(name="skip", help="play the next song in the play queue, if there is one", aliases = ("next","n"))
+async def skip(ctx:commands.Context, *args):
+    if ctx.voice_client and ctx.voice_client.is_playing():
+        await ctx.send(f"Skipping {ctx.voice_client.source.title}")
+        ctx.voice_client.stop()
+
+@bot.command(name="start", help="start playing songs from the playlist", aliases = ("begin",))
+async def start(ctx:commands.Context, *args):
+    if play_queue:
+        await play(ctx, play_queue.popleft())
 
 bot.run(info["key"])
