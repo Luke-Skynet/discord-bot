@@ -29,3 +29,9 @@ RUN git clone https://github.com/Luke-Skynet/discord-bot.git ~/discord-bot;
 
 RUN conda install -y pip; \
     pip install -r ~/discord-bot/environment/requirements.txt;
+
+# Create a directory for MongoDB data
+RUN mkdir -p /data/db
+
+# Start MongoDB service when the container launches
+CMD ["mongod", "--bind_ip 127.0.0.1"]
