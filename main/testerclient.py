@@ -4,7 +4,6 @@ import yt_dlp
 
 from dbhandler import DBhandle
 
-
 import discord
 from discord.ext import commands
 
@@ -12,9 +11,7 @@ from discord.ext import commands
 info = json.load(open("/root/discord-bot/jsons/info.json"))
 config = json.load(open("/root/discord-bot/jsons/config.json"))
 
-intents = discord.Intents.all()
-
-bot = commands.Bot(command_prefix=commands.when_mentioned_or("!"), intents=intents)
+bot = commands.Bot(command_prefix=commands.when_mentioned_or("!"), case_insensitive=True, intents=discord.Intents.all())
 
 guild:discord.Guild = None
 commmand_channel:int = config["commands-channel-id"]
@@ -68,7 +65,6 @@ class YTDLSource(discord.PCMVolumeTransformer):
         filename = data['url'] if stream else ytdl.prepare_filename(data)
         return cls(discord.FFmpegPCMAudio(filename, **ffmpeg_options), data=data)
 
-
 '''Commands'''
 
 @bot.event
@@ -102,7 +98,7 @@ def count_swears(string:str):
             ret[swear] = count
     return ret
 
-@bot.command(name = "bonk", help='bonk a person being indecorous', alias = ("b",))
+@bot.command(name = "bonk", help='bonk a person being indecorous', aliases = ("b",))
 async def bonk(ctx:commands.Context, *arg:str):
     for user in arg:
         if user == "<@" + str(bot.user.id) + ">":
@@ -122,21 +118,25 @@ async def bonk(ctx:commands.Context, *arg:str):
 
 '''Voice Commands'''
 
-@bot.command(name='join', help="add bot to user's current channel")
+@bot.command(name='join', help="add bot to user's current channel", aliases = ("start", "j"))
 async def join(ctx:commands.Context):
     if ctx.author.voice is None:
         await ctx.send("You are not connected to a voice channel.")
     else:
         channel = ctx.author.voice.channel
         if ctx.voice_client is not None:
-            return await ctx.voice_client.move_to(channel)
-        await channel.connect()
+            await ctx.voice_client.move_to(channel)
+        else:
+            await channel.connect()
+        await ctx.send(f"Joining channel: <#{channel.id}>")
 
-@bot.command(name='leave', help="disconnect bot from current channel")
+@bot.command(name='leave', help="disconnect bot from current channel", aliases = ("quit", "l"))
 async def leave(ctx:commands.Context):
-    await ctx.voice_client.disconnect()
+    if ctx.voice_client:
+        await ctx.send(f"Leaving channel: <#{ctx.voice_client.channel.id}>")
+        await ctx.voice_client.disconnect()
 
-@bot.command(name="play")
+@bot.command(name="play", help="play a new song or resume a paused song", aliases = ("resume", "p"))
 async def play(ctx:commands.Context, *args):
     if len(args) > 0:
         async with ctx.typing():
@@ -148,11 +148,10 @@ async def play(ctx:commands.Context, *args):
             ctx.voice_client.resume()
             await ctx.send("Resume Confirmed")
 
-@bot.command(name="pause")
+@bot.command(name="pause", help="pause the current playing song", aliases = ("stop","s"))
 async def pause(ctx):
     if ctx.voice_client and ctx.voice_client.is_playing():
         ctx.voice_client.pause()
         await ctx.send("Pause Confirmed")
-
 
 bot.run(info["key"])
