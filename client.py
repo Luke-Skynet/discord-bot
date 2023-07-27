@@ -1,4 +1,5 @@
 import json
+import re
 import asyncio
 import yt_dlp
 
@@ -68,6 +69,7 @@ class YTDLSource(discord.PCMVolumeTransformer):
 '''database stuff'''
 
 handle = DBhandle()
+
 handle.open_db("bot")
 
 '''commands stuff'''
@@ -82,6 +84,29 @@ async def on_ready():
     else:
         print(f"Update: {bot.user} registered guild: {str(guild)}")
 
+    query = list(handle.db["members"].find({}, {"member_id"}))
+    print(query)
+    db_members_ids = set(dct["member_id"] for dct in query)
+
+    current_members_ids = [mem.id for mem in guild.members]
+
+    new_member_template = json.load(open("db_member_template.json"))
+    new_members = []
+    for mem_id in current_members_ids:
+        if mem_id not in db_members_ids:
+            new_member = dict(new_member_template)
+            new_member["member_id"] = mem_id
+            new_members.append(new_member)
+    handle.db["members"].insert_many(new_members)
+    print("Update: member database refreshed")
+
+@bot.event
+async def on_member_join(member):
+    if not handle.db["members"].find({"member_id":member.id}):
+        new_member = json.load(open("db_member_template.json"))
+        new_member["member_id"] = mem_id
+        handle.db["members"].insert_one(new_member)
+
 @bot.event
 async def on_message(message:str):
     if message.author == bot.user:
@@ -90,7 +115,7 @@ async def on_message(message:str):
     swears = count_swears(message.content)
     if swears:
         await message.channel.send(author + " has said the following swear words: " + str(swears))
-    
+
     if message.channel.id == commmand_channel:
         await bot.process_commands(message)
 
@@ -106,20 +131,24 @@ def count_swears(string:str):
 @bot.command(name = "bonk", help='bonk a person being indecorous', aliases = ("b",))
 async def bonk(ctx:commands.Context, *arg:str):
     for user in arg:
+        if not re.match("<@\d+>", str(user)) or ctx.guild.get_member(int(user.strip("<@>"))):
+            print(str(user) + " is not a member.")
+
         if user == "<@" + str(bot.user.id) + ">":
             author = "<@" + str(ctx.message.author.id) + ">"
             await ctx.send(f"{author} tried to bonk the bot!")
             continue
-        elif not user.strip("<@>").isnumeric() or not ctx.guild.get_member(int(user.strip("<@>"))):
-            print(str(user) + " is not a member.")
-            continue
 
-        bonks = handle.get(user, default = 0) + 1
-        handle.update(user, bonks)
-        handle.close()
+        user_id = int(user.strip("<@>"))
+
+        bonker_result = handle.db["members"].update_one({"member_id":ctx.message.author.id},{"$inc": {"bonks_given": 1}})
+        bonked_result = handle.db["members"].find_one_and_update({"member_id":user_id},{"$inc": {"bonks_received": 1}})
+
+        bonks = bonked_result["bonks_received"]
         await ctx.send(f"{user} has been bonked {str(bonks)} time{'s' if bonks > 1 else ''}!")
 
 '''Voice Commands'''
+
 @bot.command(name='join', help="add bot to user's current channel", aliases = ("come", "j"))
 async def join(ctx:commands.Context):
     if ctx.author.voice is None:

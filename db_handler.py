@@ -1,23 +1,32 @@
-import shelve
+import pymongo
+from pymongo import MongoClient
+from pymongo.database import Database
 
 class DBhandle:
-    def __init__(self):
-        self.handle = None
-        self.live = False
-    def open(self):
-        self.handle = shelve.open("/database/localdict")
-        self.live = True
-    def update(self, key, value):
-        if self.live:
-            self.handle[key] = value
+    def __init__(self, host = None, port = None):
+        self.client: MongoClient = MongoClient("mongodb://eager_dirac")
+        self.db: Database = None
+
+    def open_db(self, database:str):
+        self.db = self.client.get_database(database)
+
+    def add_doc(self, collection:str, document:dict):
+        self.db[collection].insert_one(document)
+
+    def get_doc(self, collection:str, query:dict, single = True):
+        if single:
+            return self.db[collection].find_one(query)
         else:
-            print("db not live")
-    def get(self, key, default = None):
-        if self.live:
-            if key in self.handle.keys():
-                return self.handle[key]
-            else:
-                return default
+            return list(self.db[collection].find(query))
+    
+    def update_doc(self, collection:str, query:dict, action:dict):
+        self.db[collection].update_many(query, action)
+
+    def drop_doc(self, collection:str, query:dict, single = True):
+        self.db[collection].remove(query, {"justOne": single})
+
     def close(self):
-        self.handle.close()
-        self.live = False
+        self.db = None
+
+    def disconnect(self):
+        self.client.close()
