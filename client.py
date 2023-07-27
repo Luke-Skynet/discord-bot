@@ -4,11 +4,11 @@ import yt_dlp
 
 from collections import deque
 
-from dbhandler import DBhandle
-
 import discord
 from discord.ext import commands
 from discord.utils import get
+
+from db_handler import DBhandle
 
 info = json.load(open("jsons/info.json"))
 config = json.load(open("jsons/config.json"))
@@ -63,8 +63,15 @@ class YTDLSource(discord.PCMVolumeTransformer):
             data = data['entries'][0]
         filename = data['url']
         return cls(discord.FFmpegPCMAudio(filename, **ffmpeg_options), data=data)
-    
-'''Commands'''
+
+
+'''database stuff'''
+
+handle = DBhandle()
+handle.open_db("bot")
+
+'''commands stuff'''
+
 @bot.event
 async def on_ready():
     print(f'Update: {bot.user} has connected to Discord!')
@@ -106,9 +113,7 @@ async def bonk(ctx:commands.Context, *arg:str):
         elif not user.strip("<@>").isnumeric() or not ctx.guild.get_member(int(user.strip("<@>"))):
             print(str(user) + " is not a member.")
             continue
-        
-        handle = DBhandle()
-        handle.open()
+
         bonks = handle.get(user, default = 0) + 1
         handle.update(user, bonks)
         handle.close()
@@ -130,9 +135,9 @@ async def join(ctx:commands.Context):
 @bot.command(name='leave', help="disconnect bot from current channel", aliases = ("quit","go", "l"))
 async def leave(ctx:commands.Context):
     if ctx.voice_client:
-        await ctx.send(f"Leaving channel: <#{ctx.voice_client.channel.id}>")
         await ctx.voice_client.disconnect()
-
+        await ctx.send(f"Leaving channel: <#{ctx.voice_client.channel.id}>")
+        
 
 @bot.command(name="play", help="play a new song or resume a paused song", aliases = ("resume", "p"))
 async def play(ctx:commands.Context, *args):
@@ -174,8 +179,8 @@ async def queue(ctx:commands.Context, *args):
 @bot.command(name="skip", help="play the next song in the play queue, if there is one", aliases = ("next","n"))
 async def skip(ctx:commands.Context, *args):
     if ctx.voice_client and ctx.voice_client.is_playing():
-        await ctx.send(f"Skipping {ctx.voice_client.source.title}")
         ctx.voice_client.stop()
+        await ctx.send(f"Skipping {ctx.voice_client.source.title}")
 
 @bot.command(name="start", help="start playing songs from the playlist", aliases = ("begin",))
 async def start(ctx:commands.Context, *args):
