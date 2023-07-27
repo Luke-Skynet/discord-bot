@@ -4,7 +4,7 @@ from pymongo.database import Database
 
 class DBhandle:
     def __init__(self, host = None, port = None):
-        self.client: MongoClient = MongoClient("mongodb://eager_dirac")
+        self.client: MongoClient = MongoClient(host,port)
         self.db: Database = None
 
     def open_db(self, database:str):

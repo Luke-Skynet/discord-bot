@@ -34,4 +34,4 @@ RUN conda install -y pip; \
 
 RUN mkdir -p /data/db
 
-CMD ["mongod",]
+CMD ["mongod", "--bind_ip 127.0.0.1"]
