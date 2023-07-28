@@ -11,6 +11,8 @@ from discord.utils import get
 
 from db_handler import DBhandle
 
+# load main references
+
 info = json.load(open("jsons/info.json"))
 config = json.load(open("jsons/config.json"))
 
@@ -20,7 +22,7 @@ guild:discord.Guild = None
 commmand_channel:int = config["commands-channel-id"]
 
 
-'''stream stuff'''
+# stream configs
 
 play_queue = deque()
 
@@ -65,14 +67,12 @@ class YTDLSource(discord.PCMVolumeTransformer):
         filename = data['url']
         return cls(discord.FFmpegPCMAudio(filename, **ffmpeg_options), data=data)
 
-
-'''database stuff'''
+#initialize database
 
 handle = DBhandle()
+handle.set_db("bot")
 
-handle.open_db("bot")
-
-'''commands stuff'''
+#commands
 
 @bot.event
 async def on_ready():
@@ -141,10 +141,16 @@ async def bonk(ctx:commands.Context, *arg:str):
 
         user_id = int(user.strip("<@>"))
 
-        bonker_result = handle.db["members"].update_one({"member_id":ctx.message.author.id},{"$inc": {"bonks_given": 1}})
-        bonked_result = handle.db["members"].find_one_and_update({"member_id":user_id},{"$inc": {"bonks_received": 1}})
+        handle.db["members"].update_one(
+            {"member_id":ctx.message.author.id},
+            {"$inc": {"bonks_given": 1},
+             "$set":{"last_bonk_given":user_id}})
+        bonked_result = handle.db["members"].find_one_and_update(
+            {"member_id":user_id},
+            {"$inc": {"bonks_received": 1},
+             "$set":{"last_bonk_received":ctx.message.author.id}})
 
-        bonks = bonked_result["bonks_received"]
+        bonks = bonked_result["bonks_received"] + 1
         await ctx.send(f"{user} has been bonked {str(bonks)} time{'s' if bonks > 1 else ''}!")
 
 '''Voice Commands'''

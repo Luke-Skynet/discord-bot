@@ -7,6 +7,9 @@
     "last_bonked_by_time":null,
     "last_bonk_given":null,
     "last_bonk_given_time":null,
+    "bonk_reasons":[
+
+    ],
     "medals":[
 
     ],
