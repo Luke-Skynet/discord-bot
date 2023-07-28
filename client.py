@@ -85,7 +85,6 @@ async def on_ready():
         print(f"Update: {bot.user} registered guild: {str(guild)}")
 
     query = list(handle.db["members"].find({}, {"member_id"}))
-    print(query)
     db_members_ids = set(dct["member_id"] for dct in query)
 
     current_members_ids = [mem.id for mem in guild.members]
@@ -130,11 +129,11 @@ def count_swears(string:str):
     return ret
 
 @bot.command(name = "bonk", help="bonk a person being indecorous", aliases = ("b",))
-async def bonk(ctx:commands.Context, *args:list):
+async def bonk(ctx:commands.Context, *args):
     if len(args) < 1:
         return
 
-    member = args[0]
+    member = str(args[0])
     bonk_reason = "no reason" if len(args) > 1 else args[1]
     
     if not re.match("<@\d+>", member) or ctx.guild.get_member(int(member.strip("<@>"))):
@@ -170,7 +169,7 @@ async def bonk(ctx:commands.Context, *args:list):
     await ctx.send(f"{member} has been bonked {str(bonks)} time{'s' if bonks != 1 else ''}!")
 
 @bot.command(name = "bonkstats", help="view a persons bonk statistics (last bonk and reason)")
-async def bonkstats(ctx:commands.Context, *args:list):
+async def bonkstats(ctx:commands.Context, *args):
     member_id = ctx.author.id
     if len(args) > 0: 
         if not re.match("<@\d+>", args[0]) or not ctx.guild.get_member(int(args[0].strip("<@>"))):
@@ -210,7 +209,7 @@ async def leave(ctx:commands.Context):
         
 
 @bot.command(name="play", help="play a new song or resume a paused song", aliases = ("resume", "p"))
-async def play(ctx:commands.Context, *args:list):
+async def play(ctx:commands.Context, *args):
     if not ctx.voice_client:
         await join(ctx)
         if not ctx.author.voice:
@@ -242,18 +241,18 @@ async def pause(ctx:commands.Context):
         await ctx.send("Pause Confirmed")
 
 @bot.command(name="queue", help="add a song the the play queue", aliases = ("que","q"))
-async def queue(ctx:commands.Context, *args:list):
+async def queue(ctx:commands.Context, *args):
     play_queue.append(' '.join(args))
     await ctx.send(f"Queueing: {' '.join(args)}")
 
 @bot.command(name="skip", help="play the next song in the play queue, if there is one", aliases = ("next","n"))
-async def skip(ctx:commands.Context, *args:list):
+async def skip(ctx:commands.Context, *args):
     if ctx.voice_client and ctx.voice_client.is_playing():
         ctx.voice_client.stop()
         await ctx.send(f"Skipping {ctx.voice_client.source.title}")
 
 @bot.command(name="start", help="start playing songs from the playlist", aliases = ("begin",))
-async def start(ctx:commands.Context, *args:list):
+async def start(ctx:commands.Context, *args):
     if play_queue:
         await play(ctx, play_queue.popleft())
 
