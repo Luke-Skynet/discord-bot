@@ -97,7 +97,8 @@ async def on_ready():
             new_member = dict(new_member_template)
             new_member["member_id"] = mem_id
             new_members.append(new_member)
-    handle.db["members"].insert_many(new_members)
+    if new_members:
+        handle.db["members"].insert_many(new_members)
     print("Update: member database refreshed")
 
 @bot.event
