@@ -147,8 +147,6 @@ async def bonk(ctx:commands.Context, *args):
         await ctx.send(f"{member} is not a member.")
         return
     
-    
-
     member_id = int(member.strip("<@>"))
 
     handle.db["members"].update_one(
