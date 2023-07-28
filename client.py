@@ -2,6 +2,7 @@ import json
 import re
 import asyncio
 import yt_dlp
+import time
 
 from collections import deque
 
@@ -104,7 +105,7 @@ async def on_ready():
 async def on_member_join(member):
     if not handle.db["members"].find({"member_id":member.id}):
         new_member = json.load(open("db_member_template.json"))
-        new_member["member_id"] = mem_id
+        new_member["member_id"] = member.id
         handle.db["members"].insert_one(new_member)
 
 @bot.event
@@ -134,10 +135,11 @@ async def bonk(ctx:commands.Context, *args):
         return
 
     member = str(args[0])
-    bonk_reason = "no reason" if len(args) > 1 else args[1]
+    bonk_time = round(time.time())
+    bonk_reason = "no reason" if len(args) == 1 else args[1]
     
-    if not re.match("<@\d+>", member) or ctx.guild.get_member(int(member.strip("<@>"))):
-        print(args[0] + " is not a member.")
+    if not re.match("<@\d+>", member) or not ctx.guild.get_member(int(member.strip("<@>"))):
+        await ctx.send(f"{member} is not a member.")
         return
     
     if member == "<@" + str(bot.user.id) + ">":
@@ -151,7 +153,7 @@ async def bonk(ctx:commands.Context, *args):
         {"member_id": ctx.message.author.id},
         {"$inc": {"bonks_given": 1},
          "$set": {"last_bonk_given": member_id,
-                  "last_bonk_given_time": bonktime,
+                  "last_bonk_given_time": bonk_time,
                   "last_bonk_given_reason": bonk_reason}
         }
     )
@@ -159,7 +161,7 @@ async def bonk(ctx:commands.Context, *args):
         {"member_id": member_id},
         {"$inc": {"bonks_received": 1},
          "$set": {"last_bonked_by": ctx.message.author.id,
-                  "last_bonked_by_time": bonktime,
+                  "last_bonked_by_time": bonk_time,
                   "last_bonked_by_reason": bonk_reason},
          "$push":{"bonk_reasons": bonk_reason}
         }
