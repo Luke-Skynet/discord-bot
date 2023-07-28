@@ -67,12 +67,12 @@ class YTDLSource(discord.PCMVolumeTransformer):
         filename = data['url']
         return cls(discord.FFmpegPCMAudio(filename, **ffmpeg_options), data=data)
 
-#initialize database
+# initialize database
 
 handle = DBhandle()
 handle.set_db("bot")
 
-#commands
+# commands
 
 @bot.event
 async def on_ready():
@@ -128,32 +128,67 @@ def count_swears(string:str):
             ret[swear] = count
     return ret
 
-@bot.command(name = "bonk", help='bonk a person being indecorous', aliases = ("b",))
-async def bonk(ctx:commands.Context, *arg:str):
-    for user in arg:
-        if not re.match("<@\d+>", str(user)) or ctx.guild.get_member(int(user.strip("<@>"))):
-            print(str(user) + " is not a member.")
+@bot.command(name = "bonk", help="bonk a person being indecorous", aliases = ("b",))
+async def bonk(ctx:commands.Context, *args:list):
+    if len(args) < 1:
+        return
 
-        if user == "<@" + str(bot.user.id) + ">":
-            author = "<@" + str(ctx.message.author.id) + ">"
-            await ctx.send(f"{author} tried to bonk the bot!")
-            continue
+    member = args[0]
+    bonk_reason = "no reason" if len(args) > 1 else args[1]
+    
+    if not re.match("<@\d+>", member) or ctx.guild.get_member(int(member.strip("<@>"))):
+        print(args[0] + " is not a member.")
+        return
+    
+    if member == "<@" + str(bot.user.id) + ">":
+        author = "<@" + str(ctx.message.author.id) + ">"
+        await ctx.send(f"{author} tried to bonk the bot!")
+        continue
 
-        user_id = int(user.strip("<@>"))
+    member_id = int(member.strip("<@>"))
 
-        handle.db["members"].update_one(
-            {"member_id":ctx.message.author.id},
-            {"$inc": {"bonks_given": 1},
-             "$set":{"last_bonk_given":user_id}})
-        bonked_result = handle.db["members"].find_one_and_update(
-            {"member_id":user_id},
-            {"$inc": {"bonks_received": 1},
-             "$set":{"last_bonk_received":ctx.message.author.id}})
+    handle.db["members"].update_one(
+        {"member_id": ctx.message.author.id},
+        {"$inc": {"bonks_given": 1},
+         "$set": {"last_bonk_given": member_id,
+                  "last_bonk_given_time": bonktime,
+                  "last_bonk_given_reason": bonk_reason}
+        }
+    )
+    bonked_result = handle.db["members"].find_one_and_update(
+        {"member_id": member_id},
+        {"$inc": {"bonks_received": 1},
+         "$set": {"last_bonked_by": ctx.message.author.id,
+                  "last_bonked_by_time": bonktime,
+                  "last_bonked_by_reason": bonk_reason},
+         "$push":{"bonk_reasons": bonk_reason}
+        }
+    )
 
-        bonks = bonked_result["bonks_received"] + 1
-        await ctx.send(f"{user} has been bonked {str(bonks)} time{'s' if bonks > 1 else ''}!")
+    bonks = bonked_result["bonks_received"] + 1
+    await ctx.send(f"{member} has been bonked {str(bonks)} time{'s' if bonks != 1 else ''}!")
 
-'''Voice Commands'''
+@bot.command(name = "bonkstats", help="view a persons bonk statistics (last bonk and reason)")
+async def bonkstats(ctx:commands.Context, *args:list):
+    member_id = ctx.author.id
+    if len(args) > 0: 
+        if not re.match("<@\d+>", args[0]) or not ctx.guild.get_member(int(args[0].strip("<@>"))):
+            print(str(args[0]) + " is not a member.")
+            return
+        else:
+            member_id = int(args[0].strip("<@>"))
+
+    doc = handle.db["members"].find_one({"member_id":member_id})
+    string = f"Bonk statistics for <@{member_id}>: \n" + \
+             f"\t They have been bonked {doc['bonks_received']} time{'s' if doc['bonks_received'] != 1 else ''}.\n"
+    if doc['last_bonked_by']:
+        string = string + f"\t They were last bonked by <@{doc['last_bonked_by']}> on {time.ctime(doc['last_bonked_by_time'])}.\n"
+        string = string + f"\t This was because: \"{doc['last_bonked_by_reason']}\".\n"
+    
+    await ctx.send(string)
+
+
+# music commands
 
 @bot.command(name='join', help="add bot to user's current channel", aliases = ("come", "j"))
 async def join(ctx:commands.Context):
@@ -175,7 +210,7 @@ async def leave(ctx:commands.Context):
         
 
 @bot.command(name="play", help="play a new song or resume a paused song", aliases = ("resume", "p"))
-async def play(ctx:commands.Context, *args):
+async def play(ctx:commands.Context, *args:list):
     if not ctx.voice_client:
         await join(ctx)
         if not ctx.author.voice:
@@ -207,18 +242,18 @@ async def pause(ctx:commands.Context):
         await ctx.send("Pause Confirmed")
 
 @bot.command(name="queue", help="add a song the the play queue", aliases = ("que","q"))
-async def queue(ctx:commands.Context, *args):
+async def queue(ctx:commands.Context, *args:list):
     play_queue.append(' '.join(args))
     await ctx.send(f"Queueing: {' '.join(args)}")
 
 @bot.command(name="skip", help="play the next song in the play queue, if there is one", aliases = ("next","n"))
-async def skip(ctx:commands.Context, *args):
+async def skip(ctx:commands.Context, *args:list):
     if ctx.voice_client and ctx.voice_client.is_playing():
         ctx.voice_client.stop()
         await ctx.send(f"Skipping {ctx.voice_client.source.title}")
 
 @bot.command(name="start", help="start playing songs from the playlist", aliases = ("begin",))
-async def start(ctx:commands.Context, *args):
+async def start(ctx:commands.Context, *args:list):
     if play_queue:
         await play(ctx, play_queue.popleft())
 
