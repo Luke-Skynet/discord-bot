@@ -267,9 +267,9 @@ async def queue(ctx:commands.Context,
 @bot.command(name="skip", help="play the next song in the play queue, if there is one", aliases = ("next","n"))
 async def skip(ctx:commands.Context):
     if ctx.voice_client and ctx.voice_client.is_playing():
-        title = ctx.voice_client.source.title
+        await ctx.send(f"Skipping {ctx.voice_client.source.title}")
         ctx.voice_client.stop()
-        await ctx.send(f"Skipping {title}")
+        
 
 @bot.command(name="start", help="start playing songs from the playlist", aliases = ("begin",))
 async def start(ctx:commands.Context):
