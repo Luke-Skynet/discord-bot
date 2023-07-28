@@ -47,7 +47,7 @@ ytdl_format_options = {
 
 ffmpeg_options = {
     'options': '-vn',
-    "before_options": "-http_persistent 0 -reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5",
+    "before_options": "-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5",
 }
 
 ytdl = yt_dlp.YoutubeDL(ytdl_format_options)
@@ -63,10 +63,16 @@ class YTDLSource(discord.PCMVolumeTransformer):
     @classmethod
     def from_url(cls, url):
         data = ytdl.extract_info(url, download=False)
+
         if 'entries' in data:
             data = data['entries'][0]
         filename = data['url']
-        return cls(discord.FFmpegPCMAudio(filename, **ffmpeg_options), data=data)
+
+        ffmpeg_options_instance = dict(ffmpeg_options)
+        if data.get('is_live', False):
+            ffmpeg_options_instance["before_options"] = "-http_persistent 0 -reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5"
+
+        return cls(discord.FFmpegPCMAudio(filename, **ffmpeg_options_instance), data=data)
 
 # initialize database
 
@@ -130,13 +136,14 @@ def count_swears(string:str):
     return ret
 
 @bot.command(name = "bonk", help="bonk a person being indecorous", aliases = ("b",))
-async def bonk(ctx:commands.Context, *args):
-    if len(args) < 1:
+async def bonk(ctx:commands.Context,
+               member: str = commands.parameter(description=" - the person you want to bonk.", default=None, displayed_default=None),
+               *, reason: list = commands.parameter(description=" - why they deserve to be bonked.", default="no reason")):
+    
+    if not member:
         return
-
-    member = str(args[0])
     bonk_time = round(time.time())
-    bonk_reason = "no reason" if len(args) == 1 else args[1]
+    bonk_reason = ''.join(reason)
     
     if member == "<@" + str(bot.user.id) + ">":
         author = "<@" + str(ctx.message.author.id) + ">"
@@ -171,21 +178,22 @@ async def bonk(ctx:commands.Context, *args):
     await ctx.send(f"{member} has been bonked {str(bonks)} time{'s' if bonks != 1 else ''}!")
 
 @bot.command(name = "bonkinfo", help="view a persons bonk statistics (last bonk and reason)")
-async def bonkinfo(ctx:commands.Context, *args):
-
+async def bonkinfo(ctx:commands.Context,
+                   member: str = commands.parameter(description=" - the person you want to look up. Leave blank to look up yourself.", default=None, displayed_default=None)):
+    
     member_id = ctx.author.id
-
-    if len(args) > 0: 
-        if args[0] == "<@" + str(bot.user.id) + ">":
+    if member: 
+        if member == "<@" + str(bot.user.id) + ">":
             await ctx.send("I cannot be bonked.")
             return
-        elif not re.match("<@\d+>", args[0]) or not ctx.guild.get_member(int(args[0].strip("<@>"))):
-            await ctx.send(f"{args[0]} is not a member.")
+        elif not re.match("<@\d+>", member) or not ctx.guild.get_member(int(member.strip("<@>"))):
+            await ctx.send(f"{member} is not a member.")
             return
         else:
-            member_id = int(args[0].strip("<@>"))
+            member_id = int(member.strip("<@>"))
 
     doc = handle.db["members"].find_one({"member_id":member_id})
+
     string = f"Bonk statistics for <@{member_id}>: \n" + \
              f"\t They have been bonked {doc['bonks_received']} time{'s' if doc['bonks_received'] != 1 else ''}.\n"
     if doc['last_bonked_by']:
@@ -211,20 +219,21 @@ async def join(ctx:commands.Context):
 @bot.command(name='leave', help="disconnect bot from current channel", aliases = ("quit","go", "l"))
 async def leave(ctx:commands.Context):
     if ctx.voice_client:
+        channel_id = ctx.voice_client.channel.id
         await ctx.voice_client.disconnect()
-        await ctx.send(f"Leaving channel: <#{ctx.voice_client.channel.id}>")
+        await ctx.send(f"Leaving channel: <#{channel_id}>")
         
-
 @bot.command(name="play", help="play a new song or resume a paused song", aliases = ("resume", "p"))
-async def play(ctx:commands.Context, *args):
+async def play(ctx:commands.Context,
+               *, song: list = commands.parameter(description=" - link or youtube search. Leave blank to resume current song.", default=None, displayed_default=None)):
     if not ctx.voice_client:
         await join(ctx)
         if not ctx.author.voice:
             return
     if ctx.voice_client.is_playing():
         ctx.voice_client.pause()
-    if len(args) > 0:
-        player = YTDLSource.from_url(' '.join(args))
+    if song:
+        player = YTDLSource.from_url(''.join(song))
         ctx.voice_client.play(player, after = lambda e: _after(ctx, e))
         await ctx.send(f'Now playing: {player.title}')
     else:
@@ -248,19 +257,23 @@ async def pause(ctx:commands.Context):
         await ctx.send("Pause Confirmed")
 
 @bot.command(name="queue", help="add a song the the play queue", aliases = ("que","q"))
-async def queue(ctx:commands.Context, *args):
-    play_queue.append(' '.join(args))
-    await ctx.send(f"Queueing: {' '.join(args)}")
+async def queue(ctx:commands.Context,
+                *, song: list = commands.parameter(description=" - link or youtube search.", default=None, displayed_default=None)):
+    if song:
+        play_queue.append(''.join(song))
+        await ctx.send(f"Queueing: {''.join(song)}")
+    
 
 @bot.command(name="skip", help="play the next song in the play queue, if there is one", aliases = ("next","n"))
-async def skip(ctx:commands.Context, *args):
+async def skip(ctx:commands.Context):
     if ctx.voice_client and ctx.voice_client.is_playing():
+        title = ctx.voice_client.source.title
         ctx.voice_client.stop()
-        await ctx.send(f"Skipping {ctx.voice_client.source.title}")
+        await ctx.send(f"Skipping {title}")
 
 @bot.command(name="start", help="start playing songs from the playlist", aliases = ("begin",))
-async def start(ctx:commands.Context, *args):
+async def start(ctx:commands.Context):
     if play_queue:
-        await play(ctx, play_queue.popleft())
+        await play(ctx, song=play_queue.popleft())
 
 bot.run(info["key"])
