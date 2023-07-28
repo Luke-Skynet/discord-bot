@@ -175,7 +175,7 @@ async def bonkstats(ctx:commands.Context, *args):
     member_id = ctx.author.id
     if len(args) > 0: 
         if not re.match("<@\d+>", args[0]) or not ctx.guild.get_member(int(args[0].strip("<@>"))):
-            print(str(args[0]) + " is not a member.")
+            await ctx.send(f"{args[0]} is not a member.")
             return
         else:
             member_id = int(args[0].strip("<@>"))
