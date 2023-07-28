@@ -138,14 +138,16 @@ async def bonk(ctx:commands.Context, *args):
     bonk_time = round(time.time())
     bonk_reason = "no reason" if len(args) == 1 else args[1]
     
-    if not re.match("<@\d+>", member) or not ctx.guild.get_member(int(member.strip("<@>"))):
-        await ctx.send(f"{member} is not a member.")
-        return
-    
     if member == "<@" + str(bot.user.id) + ">":
         author = "<@" + str(ctx.message.author.id) + ">"
         await ctx.send(f"{author} tried to bonk the bot!")
         return
+    
+    if not re.match("<@\d+>", member) or not ctx.guild.get_member(int(member.strip("<@>"))):
+        await ctx.send(f"{member} is not a member.")
+        return
+    
+    
 
     member_id = int(member.strip("<@>"))
 
@@ -170,11 +172,16 @@ async def bonk(ctx:commands.Context, *args):
     bonks = bonked_result["bonks_received"] + 1
     await ctx.send(f"{member} has been bonked {str(bonks)} time{'s' if bonks != 1 else ''}!")
 
-@bot.command(name = "bonkstats", help="view a persons bonk statistics (last bonk and reason)")
-async def bonkstats(ctx:commands.Context, *args):
+@bot.command(name = "bonkinfo", help="view a persons bonk statistics (last bonk and reason)")
+async def bonkinfo(ctx:commands.Context, *args):
+
     member_id = ctx.author.id
+
     if len(args) > 0: 
-        if not re.match("<@\d+>", args[0]) or not ctx.guild.get_member(int(args[0].strip("<@>"))):
+        if args[0] == "<@" + str(bot.user.id) + ">":
+            await ctx.send("I cannot be bonked.")
+            return
+        elif not re.match("<@\d+>", args[0]) or not ctx.guild.get_member(int(args[0].strip("<@>"))):
             await ctx.send(f"{args[0]} is not a member.")
             return
         else:
