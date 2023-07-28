@@ -5,8 +5,10 @@
     "bonks_received": 0,
     "last_bonked_by":null,
     "last_bonked_by_time":null,
+    "last_bonked_by_reason":null,
     "last_bonk_given":null,
     "last_bonk_given_time":null,
+    "last_bonk_given_reason":null,
     "bonk_reasons":[
 
     ],

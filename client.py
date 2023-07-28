@@ -143,7 +143,7 @@ async def bonk(ctx:commands.Context, *args:list):
     if member == "<@" + str(bot.user.id) + ">":
         author = "<@" + str(ctx.message.author.id) + ">"
         await ctx.send(f"{author} tried to bonk the bot!")
-        continue
+        return
 
     member_id = int(member.strip("<@>"))
 
@@ -186,7 +186,6 @@ async def bonkstats(ctx:commands.Context, *args:list):
         string = string + f"\t This was because: \"{doc['last_bonked_by_reason']}\".\n"
     
     await ctx.send(string)
-
 
 # music commands
 

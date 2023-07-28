@@ -17,4 +17,4 @@ if __name__ == "__main__":
     
     #for db updates
     handle = DBhandle()
-    handle.open_db("bot")
+    handle.set_db("bot")
