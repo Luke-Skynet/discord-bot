@@ -122,7 +122,7 @@ async def bonk(ctx:commands.Context,
     bonks = bonked_result["bonks_received"] + 1
     await ctx.send(f"{member} has been bonked {str(bonks)} time{'s' if bonks != 1 else ''}!")
 
-@bot.command(name = "bonkinfo", help="view a persons bonk statistics (last bonk and reason)")
+@bot.command(name = "bonkinfo", help="view a person's bonk statistics (last bonk and reason)")
 async def bonkinfo(ctx:commands.Context,
                    member: str = commands.parameter(description=" - the person you want to look up. Leave blank to look up yourself.", default=None, displayed_default=None)):
     
@@ -149,7 +149,7 @@ async def bonkinfo(ctx:commands.Context,
 
 # music commands
 
-@bot.command(name='join', help="add bot to user's current channel", aliases = ("come", "j"))
+@bot.command(name='join', help="add bot to your current channel", aliases = ("come", "j"))
 async def join(ctx:commands.Context):
     if ctx.author.voice is None:
         await ctx.send("You are not connected to a voice channel.")
