@@ -1,4 +1,5 @@
 {
+    "db-option":"live",
     "opus-dir":"/usr/lib/x86_64-linux-gnu/libopus.so.0",
     "commands-channel-id": 1130963992173613116,
     "bonk-cooldown":30,
