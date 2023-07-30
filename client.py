@@ -18,12 +18,12 @@ from music_handler import MusicHandle
 
 load_dotenv() # guild id and bot oauth key
 config = json.load(open("config.json"))
-print(config)
+
 bot = commands.Bot(command_prefix=commands.when_mentioned_or("!"), case_insensitive=True, intents=discord.Intents.all())
 guild:discord.Guild = None
 discord.utils.setup_logging(level=logging.INFO, root=True)
 
-db_handle = DBhandle(in_docker = bool(config["docker"]))
+db_handle = DBhandle(in_docker = config["docker"])
 db_handle.set_db(config["database"])
 try:
     db_handle.client.server_info()
@@ -76,14 +76,11 @@ async def on_message(message:str):
         return
     author = "<@" + str(message.author.id) + ">"
     swears = count_swears(message.content)
-    if swears:
-        await message.channel.send(author + " has said the following swear words: " + str(swears))
-
     if message.channel.id == config["commands-channel-id"]:
         await bot.process_commands(message)
 
 def count_swears(string:str):
-    swear_words = ("fuck", "shit", "uwu")
+    swear_words = ()
     counts = (string.lower().count(s) for s in swear_words)
     ret = {}
     for swear, count in list(zip(swear_words, counts)):
@@ -182,7 +179,6 @@ async def leave(ctx:commands.Context):
 @bot.command(name="play", help="play a new song or resume a paused song", aliases = ("resume", "p"))
 async def play(ctx:commands.Context,
                *, song: str = commands.parameter(description=" - link or youtube search. Leave blank to resume current song.", default=None, displayed_default=None)):
-
     if not ctx.voice_client:
         await join(ctx)
         if not ctx.author.voice:

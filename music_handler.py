@@ -40,7 +40,7 @@ class MusicHandle:
     def load_from_queue(self):
         return self.prepare_audio(self.play_queue.popleft())
 
-    def add_to_queue(self, song):
+    def add_to_queue(self, song:str):
         self.play_queue.append(song)
 
 
@@ -62,7 +62,7 @@ class YTDLSource(discord.PCMVolumeTransformer):
         filename = data['url']
 
         ffmpeg_options_instance = dict(ffmpeg_options)
-        if data.get('is_live', False):
+        if data.get('is_live'):
             ffmpeg_options_instance["before_options"] = "-http_persistent 0 -reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5"
 
         return cls(discord.FFmpegPCMAudio(filename, **ffmpeg_options_instance), data=data)
