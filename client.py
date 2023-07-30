@@ -15,23 +15,25 @@ from db_handler import DBhandle
 from music_handler import MusicHandle
 
 # load main references
-discord.utils.setup_logging(level=logging.INFO, root=True)
+
 load_dotenv() # guild id and bot oauth key
 config = json.load(open("config.json"))
-
+print(config)
 bot = commands.Bot(command_prefix=commands.when_mentioned_or("!"), case_insensitive=True, intents=discord.Intents.all())
 guild:discord.Guild = None
-
-music_handle = MusicHandle()
-music_handle.load_settings(config["opus-dir"])
+discord.utils.setup_logging(level=logging.INFO, root=True)
 
 db_handle = DBhandle(in_docker = bool(config["docker"]))
 db_handle.set_db(config["database"])
 try:
     db_handle.client.server_info()
+    logging.info("connected to database")
 except:
     logging.error("database connection not established")
     sys.exit(1)
+
+music_handle = MusicHandle()
+music_handle.load_settings(config["opus-dir"])
 
 # commands
 
@@ -92,12 +94,12 @@ def count_swears(string:str):
 @bot.command(name = "bonk", help="bonk a person being indecorous", aliases = ("b",))
 async def bonk(ctx:commands.Context,
                member: str = commands.parameter(description=" - the person you want to bonk.", default=None, displayed_default=None),
-               *, reason: list = commands.parameter(description=" - why they deserve to be bonked.", default="no reason")):
-    
+               *, reason: str = commands.parameter(description=" - why they deserve to be bonked.", default="no reason")):
+
     if not member:
         return
     bonk_time = round(time.time())
-    bonk_reason = ''.join(reason)
+    bonk_reason = reason
     
     if member == "<@" + str(bot.user.id) + ">":
         author = "<@" + str(ctx.message.author.id) + ">"
@@ -179,7 +181,8 @@ async def leave(ctx:commands.Context):
         
 @bot.command(name="play", help="play a new song or resume a paused song", aliases = ("resume", "p"))
 async def play(ctx:commands.Context,
-               *, song: list = commands.parameter(description=" - link or youtube search. Leave blank to resume current song.", default=None, displayed_default=None)):
+               *, song: str = commands.parameter(description=" - link or youtube search. Leave blank to resume current song.", default=None, displayed_default=None)):
+
     if not ctx.voice_client:
         await join(ctx)
         if not ctx.author.voice:
@@ -187,7 +190,7 @@ async def play(ctx:commands.Context,
     if ctx.voice_client.is_playing():
         ctx.voice_client.pause()
     if song:
-        player = music_handle.prepare_audio(''.join(song))
+        player = music_handle.prepare_audio(song)
         ctx.voice_client.play(player, after = lambda e: _after(ctx, e))
         await ctx.send(f'Now playing: {player.title}')
     else:
@@ -212,10 +215,10 @@ async def pause(ctx:commands.Context):
 
 @bot.command(name="queue", help="add a song the the play queue", aliases = ("que","q"))
 async def queue(ctx:commands.Context,
-                *, song: list = commands.parameter(description=" - link or youtube search.", default=None, displayed_default=None)):
+                *, song: str = commands.parameter(description=" - link or youtube search.", default=None, displayed_default=None)):
     if song:
-        music_handle.add_to_queue(''.join(song))
-        await ctx.send(f"Queueing: {''.join(song)}")
+        music_handle.add_to_queue(song)
+        await ctx.send(f"Queueing: {song}")
     
 
 @bot.command(name="skip", help="play the next song in the play queue, if there is one", aliases = ("next","n"))
