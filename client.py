@@ -1,4 +1,6 @@
 import json
+from dotenv import load_dotenv
+import os
 import re
 import asyncio
 import time
@@ -12,8 +14,8 @@ from music_handler import MusicHandle
 
 # load main references
 
-info = json.load(open("jsons/info.json"))
-config = json.load(open("jsons/config.json"))
+load_dotenv() # guild id and bot oauth key
+config = json.load(open("config.json"))
 
 bot = commands.Bot(command_prefix=commands.when_mentioned_or("!"), case_insensitive=True, intents=discord.Intents.all())
 guild:discord.Guild = None
@@ -21,15 +23,15 @@ guild:discord.Guild = None
 music_handle = MusicHandle()
 music_handle.load_settings(config["opus-dir"])
 
-db_handle = DBhandle()
-db_handle.set_db(config["db-option"])
+db_handle = DBhandle(in_docker = bool(config["docker"]))
+db_handle.set_db(config["database"])
 
 # commands
 
 @bot.event
 async def on_ready():
     print(f'Update: {bot.user} has connected to Discord!')
-    guild = bot.get_guild(int(info["guild"]))
+    guild = bot.get_guild(int(os.getenv("guild")))
     if not guild:
         print("Error: guild not found")
         exit()
@@ -221,4 +223,4 @@ async def start(ctx:commands.Context):
     if music_handle.songs_in_queue():
         await play(ctx, song=music_handle.play_queue.popleft())
 
-bot.run(info["key"])
+bot.run(os.getenv("bot_key"))
