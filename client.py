@@ -1,6 +1,7 @@
 import json
 from dotenv import load_dotenv
 import os
+import sys
 import re
 import asyncio
 import time
@@ -25,6 +26,10 @@ music_handle.load_settings(config["opus-dir"])
 
 db_handle = DBhandle(in_docker = bool(config["docker"]))
 db_handle.set_db(config["database"])
+try:
+    db_handle.client.server_info()
+except:
+    sys.exit("Error: database connection not established")
 
 # commands
 
@@ -33,8 +38,7 @@ async def on_ready():
     print(f'Update: {bot.user} has connected to Discord!')
     guild = bot.get_guild(int(os.getenv("guild")))
     if not guild:
-        print("Error: guild not found")
-        exit()
+        sys.exit("Error: guild not found")
     else:
         print(f"Update: {bot.user} registered guild: {str(guild)}")
 
