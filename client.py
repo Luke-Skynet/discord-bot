@@ -5,6 +5,7 @@ import sys
 import re
 import asyncio
 import time
+import logging
 
 import discord
 from discord.ext import commands
@@ -14,7 +15,7 @@ from db_handler import DBhandle
 from music_handler import MusicHandle
 
 # load main references
-
+discord.utils.setup_logging(level=logging.INFO, root=True)
 load_dotenv() # guild id and bot oauth key
 config = json.load(open("config.json"))
 
@@ -29,18 +30,20 @@ db_handle.set_db(config["database"])
 try:
     db_handle.client.server_info()
 except:
-    sys.exit("Error: database connection not established")
+    logging.error("database connection not established")
+    sys.exit(1)
 
 # commands
 
 @bot.event
 async def on_ready():
-    print(f'Update: {bot.user} has connected to Discord!')
+    logging.info("connected to Discord")
     guild = bot.get_guild(int(os.getenv("guild")))
-    if not guild:
-        sys.exit("Error: guild not found")
+    if guild:
+        logging.info(f"registered guild: {str(guild)}")
     else:
-        print(f"Update: {bot.user} registered guild: {str(guild)}")
+        logging.error("guild not found")
+        sys.exit(1)
 
     query = list(db_handle.db["members"].find({}, {"member_id"}))
     db_members_ids = set(dct["member_id"] for dct in query)
@@ -56,7 +59,7 @@ async def on_ready():
             new_members.append(new_member)
     if new_members:
         db_handle.db["members"].insert_many(new_members)
-    print("Update: member database refreshed")
+    logging.info("member database refreshed")
 
 @bot.event
 async def on_member_join(member):
@@ -227,4 +230,4 @@ async def start(ctx:commands.Context):
     if music_handle.songs_in_queue():
         await play(ctx, song=music_handle.play_queue.popleft())
 
-bot.run(os.getenv("bot_key"))
+bot.run(os.getenv("bot_key"), log_handler=None)
