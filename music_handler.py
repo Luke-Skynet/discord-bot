@@ -6,7 +6,7 @@ from collections import deque
 class MusicHandle:
     def __init__(self):
 
-        self.play_queue:deque = deque()
+        self.play_queue: deque[YTDLSource] = deque()
 
         self.ytdl_format_options = {
             'format': 'bestaudio/best',
@@ -37,11 +37,11 @@ class MusicHandle:
     def songs_in_queue(self):
         return bool(self.play_queue)
 
-    def load_from_queue(self):
-        return self.prepare_audio(self.play_queue.popleft())
-
     def add_to_queue(self, song:str):
-        self.play_queue.append(song)
+        self.play_queue.append(self.prepare_audio(song))
+    
+    def load_from_queue(self):
+        return self.play_queue.popleft()
 
 
 

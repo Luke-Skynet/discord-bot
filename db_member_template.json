@@ -1,6 +1,5 @@
 {
     "member_id":null,
-    "nickname":null,
     "bonks_given": 0,
     "bonks_received": 0,
     "last_bonked_by":null,
@@ -15,13 +14,10 @@
     "medals":[
 
     ],
-    "swears":{   
+    "quotes":{
 
     },
-    "personal_notes":{
-
-    },
-    "community_notes":{
+    "comments":{
 
     },
     "themesong":null,

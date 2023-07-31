@@ -19,7 +19,13 @@ from music_handler import MusicHandle
 load_dotenv() # guild id and bot oauth key
 config = json.load(open("config.json"))
 
-bot = commands.Bot(command_prefix=commands.when_mentioned_or("!"), case_insensitive=True, intents=discord.Intents.all())
+bot = commands.Bot(
+    command_prefix = commands.when_mentioned_or("!"), 
+    case_insensitive = True,
+    intents = discord.Intents.all(),
+    help_command = commands.DefaultHelpCommand(no_category="Commands") 
+)
+
 guild:discord.Guild = None
 discord.utils.setup_logging(level=logging.INFO, root=True)
 
@@ -35,7 +41,7 @@ except:
 music_handle = MusicHandle()
 music_handle.load_settings(config["opus-dir"])
 
-# commands
+# events
 
 @bot.event
 async def on_ready():
@@ -74,19 +80,10 @@ async def on_member_join(member):
 async def on_message(message:str):
     if message.author == bot.user:
         return
-    author = "<@" + str(message.author.id) + ">"
-    swears = count_swears(message.content)
     if message.channel.id == config["commands-channel-id"]:
         await bot.process_commands(message)
 
-def count_swears(string:str):
-    swear_words = ()
-    counts = (string.lower().count(s) for s in swear_words)
-    ret = {}
-    for swear, count in list(zip(swear_words, counts)):
-        if count > 0:
-            ret[swear] = count
-    return ret
+# bonking
 
 @bot.command(name = "bonk", help="bonk a person being indecorous", aliases = ("b",))
 async def bonk(ctx:commands.Context,
@@ -202,8 +199,7 @@ def _after(ctx: commands.Context, e):
     else:
         asyncio.run_coroutine_threadsafe(ctx.send("No more songs in queue."), bot.loop)
 
-
-@bot.command(name="pause", help="pause the current playing song", aliases = ("stop","s"))
+@bot.command(name="pause", help="pause the currently playing song", aliases = ("stop","s"))
 async def pause(ctx:commands.Context):
     if ctx.voice_client and ctx.voice_client.is_playing():
         ctx.voice_client.pause()
@@ -214,8 +210,7 @@ async def queue(ctx:commands.Context,
                 *, song: str = commands.parameter(description=" - link or youtube search.", default=None, displayed_default=None)):
     if song:
         music_handle.add_to_queue(song)
-        await ctx.send(f"Queueing: {song}")
-    
+        await ctx.send(f"Queueing: {music_handle.play_queue[-1].title}")
 
 @bot.command(name="skip", help="play the next song in the play queue, if there is one", aliases = ("next","n"))
 async def skip(ctx:commands.Context):
@@ -223,10 +218,66 @@ async def skip(ctx:commands.Context):
         await ctx.send(f"Skipping {ctx.voice_client.source.title}")
         ctx.voice_client.stop()
         
-
-@bot.command(name="start", help="start playing songs from the playlist", aliases = ("begin",))
+@bot.command(name="start", help="start playing songs from the queue", aliases = ("startq", "begin","beginq"))
 async def start(ctx:commands.Context):
     if music_handle.songs_in_queue():
-        await play(ctx, song=music_handle.play_queue.popleft())
+        if not ctx.voice_client:
+            await join(ctx)
+            if not ctx.author.voice:
+                return
+        if ctx.voice_client.is_playing():
+            ctx.voice_client.pause()
+        player = music_handle.load_from_queue()
+        ctx.voice_client.play(player, after = lambda e: _after(ctx, e))
+        await ctx.send(f'Now playing: {player.title}')
 
+@bot.command(name="viewq", help="show the current play queue list", aliases = ("viewqueue","qlist","queuelist","listq","listqueue"))
+async def display_queue(ctx:commands.Context):
+    embed=discord.Embed(title="Music Queue", color=discord.Colour.og_blurple())
+    if not music_handle.songs_in_queue():
+        embed.add_field(value =  "Empty", name = '')
+    else:
+        for i, song in enumerate([*music_handle.play_queue]):
+            embed.add_field(value = f"{i + 1}: {song.title}", name = '', inline = False)
+    await ctx.send(embed = embed)
+
+# quote and comment
+
+@bot.command(name="quote", help="record the last thing a member said in a channel")
+async def quote(ctx:commands.Context, 
+                member: str = commands.parameter(description= " - the person you want to quote.", default=None, displayed_default=None),
+                channel: str = commands.parameter(description= " - the channel update their quote from. Leave blank to just recall.", default=None, displayed_default=None)):
+    if member:
+        if not re.match("<@\d+>", member) or not ctx.guild.get_member(int(member.strip("<@>"))):
+            await ctx.send(f"{member} is not a member.")
+            return
+    else:
+        return
+    
+    quote_message = None
+
+    if channel:
+        if not re.match("<#\d+>", channel) or not ctx.guild.get_channel(int(channel.strip("<#>"))):
+            await ctx.send(f"{channel} is not a text channel.")
+            return
+        
+        text_channel = ctx.guild.get_channel(int(channel.strip("<#>")))
+        messages = [message async for message in text_channel.history(limit=100)]
+        member_messages = []
+        for msg in messages:
+            if msg.author.id == int(member.strip("<@>")):
+                member_messages.append(msg.content)
+            elif member_messages:
+                break
+        
+        quote_message = '\n'.join(reversed(member_messages))
+        db_handle.db["members"].update_one({"member_id": int(member.strip("<@>"))},{"$set":{f"quotes.{ctx.author.id}":quote_message}})
+
+    else:
+        quote_message = db_handle.db["members"].find_one({"member_id": int(member.strip("<@>"))}, {f"quotes.{ctx.author.id}"}).get("quotes").get(str(ctx.author.id))
+
+    embed = discord.Embed(title=ctx.guild.get_member(int(member.strip("<@>"))).display_name, color=discord.Colour.og_blurple())
+    embed.add_field(name = '', value = f"\"{quote_message}\"")
+    await ctx.send(embed = embed)
+    
 bot.run(os.getenv("bot_key"), log_handler=None)
