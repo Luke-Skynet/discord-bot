@@ -44,11 +44,13 @@ music_handle.load_settings(config["opus-dir"])
 # events and helpers
 
 def get_mentioned_member(mention:str, ctx:commands.Context) -> discord.Member:
-    if re.match("<@\d+>", mention):
+    if mention is not None and re.match("<@\d+>", mention):
         return ctx.guild.get_member(int(mention.strip("<@>")))
+    elif mention is None:
+        asyncio.run_coroutine_threadsafe(ctx.send(f"No @person entered"), bot.loop)
     else:
-        asyncio.run_coroutine_threadsafe(ctx.send(f"{mention} is not a member."), bot.loop)
-        return
+        asyncio.run_coroutine_threadsafe(ctx.send(f"{mention} is not a member"), bot.loop)
+    return None
 
 @bot.event
 async def on_ready():
@@ -97,9 +99,6 @@ async def bonk(ctx:commands.Context,
                person: str = commands.parameter(description=" - the @person you want to bonk.", default=None, displayed_default=None),
                *, reason: str = commands.parameter(description=" - why they deserve to be bonked.", default="no reason")):
 
-    if not person:
-        return
-    
     bonk_time = round(time.time())
     bonk_reason = reason
     
@@ -108,7 +107,7 @@ async def bonk(ctx:commands.Context,
         return
     
     member = get_mentioned_member(person, ctx)
-    if not member:
+    if member is None:
         return
 
     db_handle.db["members"].update_one(
@@ -137,23 +136,23 @@ async def bonkinfo(ctx:commands.Context,
                    person: str = commands.parameter(description=" - the @person you want to look up. Leave blank to look up yourself.", default=None, displayed_default=None)):
     
     member_id = ctx.author.id
-    if person: 
+    if person is not None: 
         if person == bot.user.mention:
-            await ctx.send("I cannot be bonked.")
+            await ctx.send("I cannot be bonked")
             return
         else:
             member = get_mentioned_member(person, ctx)
-            if not member:
+            if member is None:
                 return
             member_id = member.id
 
     doc = db_handle.db["members"].find_one({"member_id":member_id})
 
     string = f"Bonk statistics for <@{member_id}>: \n" + \
-             f"\t They have been bonked {doc['bonks_received']} time{'s' if doc['bonks_received'] != 1 else ''}.\n"
+             f"\t They have been bonked {doc['bonks_received']} time{'s' if doc['bonks_received'] != 1 else ''}\n"
     if doc['last_bonked_by']:
-        string = string + f"\t They were last bonked by <@{doc['last_bonked_by']}> on {time.ctime(doc['last_bonked_by_time'])}.\n"
-        string = string + f"\t This was because: \"{doc['last_bonked_by_reason']}\".\n"
+        string = string + f"\t They were last bonked by <@{doc['last_bonked_by']}> on {time.ctime(doc['last_bonked_by_time'])}\n"
+        string = string + f"\t This was because: \"{doc['last_bonked_by_reason']}\"\n"
     
     await ctx.send(string)
 
@@ -162,7 +161,7 @@ async def bonkinfo(ctx:commands.Context,
 @bot.command(name='join', help="add bot to your current channel", aliases = ("come", "j"))
 async def join(ctx:commands.Context):
     if ctx.author.voice is None:
-        await ctx.send("You are not connected to a voice channel.")
+        await ctx.send("You are not connected to a voice channel")
     else:
         channel = ctx.author.voice.channel
         if ctx.voice_client is not None:
@@ -187,7 +186,7 @@ async def play(ctx:commands.Context,
             return
     if ctx.voice_client.is_playing():
         ctx.voice_client.pause()
-    if song:
+    if song is not None:
         player = music_handle.prepare_audio(song)
         ctx.voice_client.play(player, after = lambda e: _after(ctx, e))
         await ctx.send(f'Now playing: {player.title}')
@@ -213,7 +212,7 @@ async def pause(ctx:commands.Context):
 @bot.command(name="queue", help="add a song the the play queue", aliases = ("que","q"))
 async def queue(ctx:commands.Context,
                 *, song: str = commands.parameter(description=" - link or youtube search.", default=None, displayed_default=None)):
-    if song:
+    if song is not None:
         music_handle.add_to_queue(song)
         await ctx.send(f"Queueing: {music_handle.play_queue[-1].title}")
 
@@ -253,21 +252,19 @@ async def quote(ctx:commands.Context,
                 person: str = commands.parameter(description= " - the @person you want to quote.", default=None, displayed_default=None),
                 channel: str = commands.parameter(description= " - the channel update their quote from. Leave blank to just recall.", default=None, displayed_default=None)):
     
-    if not person:
-        return
     member = get_mentioned_member(person, ctx)
-    if not member:
+    if member is None:
         return
     
     quote_message = None
 
-    if channel:
-        if not re.match("<#\d+>", channel) or not ctx.guild.get_channel(int(channel.strip("<#>"))):
-            await ctx.send(f"{channel} is not a text channel.")
+    if channel is not None:
+        text_channel = ctx.guild.get_channel(int(channel.strip("<#>"))) if re.match("<#\d+>", channel) else None
+        if text_channel is None:
+            await ctx.send(f"{channel} is not a text channel")
             return
-        
-        text_channel = ctx.guild.get_channel(int(channel.strip("<#>")))
-        history = [message async for message in text_channel.history(limit=100)]
+            
+        history = [message async for message in text_channel.history(limit=50)]
 
         messages= []
 
