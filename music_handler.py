@@ -34,15 +34,31 @@ class MusicHandle:
     def prepare_audio(self, url:str):
         return YTDLSource.from_url(url, self.ytdl_format_options, self.ffmpeg_options)
     
-    def songs_in_queue(self):
+    def songs_in_queue(self) -> bool:
         return bool(self.play_queue)
-
+    
     def add_to_queue(self, song:str):
         self.play_queue.append(self.prepare_audio(song))
     
     def load_from_queue(self):
         return self.play_queue.popleft()
-
+    
+    def insert_into_queue(self, song:str, place:int) -> int:
+        if place is None or place > len(self.play_queue):
+            self.add_to_queue(song)
+            return len(self.play_queue)
+        queue_pos = max(0, min(place - 1, len(self.play_queue) - 1))
+        self.play_queue.insert(queue_pos, self.prepare_audio(song))
+        return queue_pos + 1
+    
+    def delete_from_queue(self, place:int) -> str:
+        if 1 <= place <= len(self.play_queue):
+            title = self.play_queue[place - 1].title
+            del self.play_queue[place - 1]
+            return title
+        
+    def clear_queue(self):
+        self.play_queue = deque()
 
 
 class YTDLSource(discord.PCMVolumeTransformer):

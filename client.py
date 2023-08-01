@@ -96,8 +96,8 @@ async def on_message(message:str):
 
 @bot.command(name = "bonk", help="bonk a person being indecorous", aliases = ("b",))
 async def bonk(ctx:commands.Context,
-               person: str = commands.parameter(description=" - the @person you want to bonk.", default=None, displayed_default=None),
-               *, reason: str = commands.parameter(description=" - why they deserve to be bonked.", default="no reason")):
+               person: str = commands.parameter(description="- the @person you want to bonk.", default=None, displayed_default=None),
+               *, reason: str = commands.parameter(description="- why they deserve to be bonked.", default="no reason")):
 
     bonk_time = round(time.time())
     bonk_reason = reason
@@ -133,7 +133,7 @@ async def bonk(ctx:commands.Context,
 
 @bot.command(name = "bonkinfo", help="view a person's bonk statistics (last bonk and reason)")
 async def bonkinfo(ctx:commands.Context,
-                   person: str = commands.parameter(description=" - the @person you want to look up. Leave blank to look up yourself.", default=None, displayed_default=None)):
+                   person: str = commands.parameter(description="- the @person you want to look up. Leave blank to look up yourself.", default=None, displayed_default=None)):
     
     member_id = ctx.author.id
     if person is not None: 
@@ -170,7 +170,7 @@ async def join(ctx:commands.Context):
             await channel.connect()
         await ctx.send(f"Joining channel: <#{channel.id}>")
 
-@bot.command(name='leave', help="disconnect bot from current channel", aliases = ("quit","go", "l"))
+@bot.command(name='leave', help="disconnect bot from current channel", aliases = ("quit","go", "exit", "l"))
 async def leave(ctx:commands.Context):
     if ctx.voice_client:
         channel_id = ctx.voice_client.channel.id
@@ -179,7 +179,7 @@ async def leave(ctx:commands.Context):
         
 @bot.command(name="play", help="play a new song or resume a paused song", aliases = ("resume", "p"))
 async def play(ctx:commands.Context,
-               *, song: str = commands.parameter(description=" - link or youtube search. Leave blank to resume current song.", default=None, displayed_default=None)):
+               *, song: str = commands.parameter(description="- link or youtube search. Leave blank to resume current song.", default=None, displayed_default=None)):
     if not ctx.voice_client:
         await join(ctx)
         if not ctx.author.voice:
@@ -187,9 +187,10 @@ async def play(ctx:commands.Context,
     if ctx.voice_client.is_playing():
         ctx.voice_client.pause()
     if song is not None:
+        message = await ctx.send("Working on it")
         player = music_handle.prepare_audio(song)
         ctx.voice_client.play(player, after = lambda e: _after(ctx, e))
-        await ctx.send(f'Now playing: {player.title}')
+        await message.edit(content = f'Now playing: {player.title}')
     else:
         if ctx.voice_client and ctx.voice_client.is_paused():
             ctx.voice_client.resume()
@@ -209,20 +210,57 @@ async def pause(ctx:commands.Context):
         ctx.voice_client.pause()
         await ctx.send("Pause Confirmed")
 
-@bot.command(name="queue", help="add a song the the play queue", aliases = ("que","q"))
+@bot.hybrid_group(name="queue", help="add a song to the music queue", aliases = ("que","q"))
 async def queue(ctx:commands.Context,
-                *, song: str = commands.parameter(description=" - link or youtube search.", default=None, displayed_default=None)):
+                *, song: str = commands.parameter(description="- link or youtube search.", default=None, displayed_default=None)):
     if song is not None:
+        message = await ctx.send("Working on it")
         music_handle.add_to_queue(song)
-        await ctx.send(f"Queueing: {music_handle.play_queue[-1].title}")
+        await message.edit(content = f"Queued: {music_handle.play_queue[-1].title}")
 
-@bot.command(name="skip", help="play the next song in the play queue, if there is one", aliases = ("next","n"))
+@queue.command(name="view", help="- show the current music queue list", aliases = ("list",))
+async def display_queue(ctx:commands.Context):
+    embed=discord.Embed(title="Music Queue", color=discord.Colour.og_blurple())
+    if not music_handle.songs_in_queue():
+        embed.add_field(value =  "Empty", name = '')
+    else:
+        for i, song in enumerate([*music_handle.play_queue]):
+            embed.add_field(value = f"{i + 1}: {song.title}", name = '', inline = False)
+    await ctx.send(embed = embed)
+
+@queue.command(name="insert", help="- add song at to a specific spot in music queue", aliases =("add",))
+async def insert(ctx:commands.Context,
+                 song: str = commands.parameter(description="- link or youtube search (use parentheses).", default=None, displayed_default=None),
+                 place: str = commands.parameter(description="- where to add the song. Leave blank to queue normally.", default=None, displayed_default=None)):
+    if song is not None and ( place.isdigit() or place is None ):
+        message = await ctx.send("Working on it")
+        queue_place = music_handle.insert_into_queue(song, int(place) if place else None)
+        await message.edit(content = f"Queued '{music_handle.play_queue[queue_place - 1].title}' into place: {queue_place}")
+
+@queue.command(name="delete", help="- remove song at to a specific spot in music queue", aliases =("remove",))
+async def delete(ctx:commands.Context,
+                 place: str = commands.parameter(description="- place of the song to remove.", default=None, displayed_default=None)):
+    if place is not None and ( place.isdigit() or place is None ):
+        title_result = music_handle.delete_from_queue(int(place) if place else None)
+        if title_result:
+            await ctx.send(f"Deleted from music queue: {title_result}")
+
+@queue.command(name="clear", help="- remove all songs from the music queue")
+async def clear(ctx:commands.Context):
+    if len(ctx.message.content.split()) == 2:
+        if music_handle.songs_in_queue():
+            music_handle.clear_queue()
+        await ctx.send("Cleared music queue")
+    else:
+        await queue(ctx, song = ' '.join(ctx.message.content.split()[1:]))
+
+@bot.command(name="skip", help="play the next song in the music queue, if there is one", aliases = ("next","n"))
 async def skip(ctx:commands.Context):
     if ctx.voice_client and ctx.voice_client.is_playing():
         await ctx.send(f"Skipping {ctx.voice_client.source.title}")
         ctx.voice_client.stop()
         
-@bot.command(name="start", help="start playing songs from the queue", aliases = ("startq", "begin","beginq"))
+@bot.command(name="start", help="start playing songs from the music queue", aliases = ("startq", "begin", "beginq"))
 async def start(ctx:commands.Context):
     if music_handle.songs_in_queue():
         if not ctx.voice_client:
@@ -235,61 +273,54 @@ async def start(ctx:commands.Context):
         ctx.voice_client.play(player, after = lambda e: _after(ctx, e))
         await ctx.send(f'Now playing: {player.title}')
 
-@bot.command(name="viewq", help="show the current play queue list", aliases = ("viewqueue","qlist","queuelist","listq","listqueue"))
-async def display_queue(ctx:commands.Context):
-    embed=discord.Embed(title="Music Queue", color=discord.Colour.og_blurple())
-    if not music_handle.songs_in_queue():
-        embed.add_field(value =  "Empty", name = '')
-    else:
-        for i, song in enumerate([*music_handle.play_queue]):
-            embed.add_field(value = f"{i + 1}: {song.title}", name = '', inline = False)
-    await ctx.send(embed = embed)
 
 # quote and comment
 
-@bot.command(name="quote", help="record and frame the last thing a member said in a channel")
+@bot.hybrid_group(name="quote", help="frame a person's ramblings from a channel or previous list")
 async def quote(ctx:commands.Context, 
-                person: str = commands.parameter(description= " - the @person you want to quote.", default=None, displayed_default=None),
-                channel: str = commands.parameter(description= " - the #channel to update their quote from. Leave blank to just recall.", default=None, displayed_default=None)):
+                person: str = commands.parameter(description= "- the @person you want to quote.", default=None, displayed_default=None),
+                *, search: str = commands.parameter(description= "- #channel if updating, or keywords if recalling.", default=None, displayed_default=None)):
     
     member = get_mentioned_member(person, ctx)
     if member is None:
         return
     
-    quote_message = None
+    if search is not None and re.match("<#\d+>", search):
 
-    if channel is not None:
-        text_channel = ctx.guild.get_channel(int(channel.strip("<#>"))) if re.match("<#\d+>", channel) else None
+        text_channel = ctx.guild.get_channel(int(search.strip("<#>")))
         if text_channel is None:
-            await ctx.send(f"{channel} is not a text channel")
+            await ctx.send(f"{search} is not a text channel")
             return
             
         history = [message async for message in text_channel.history(limit=50)]
 
-        messages= []
-
+        messages = []
+        messages_datetime = None
         for msg in history:
             if msg.author.id == member.id:
                 messages.append(msg.content)
+                messages_datetime = msg.created_at
             elif messages:
                 break
         if not messages:
             return
-        
-        quote_message = '\n'.join(reversed(messages))
-        db_handle.db["members"].update_one({"member_id": member.id},
-                                           {"$set": {f"quotes.{ctx.author.id}": quote_message}})
-
-    else:
-        query = db_handle.db["members"].find_one({"member_id": member.id}, {f"quotes.{ctx.author.id}"})
-        if query:
-            quote_message = query.get("quotes").get(str(ctx.author.id))
-        else:
-            return
-
-
-    embed = discord.Embed(title=member.display_name, color=member.accent_color)
-    embed.add_field(name = '', value = f"\"{quote_message}\"")
-    await ctx.send(embed = embed)
     
+        quote = {"message": '\n'.join(reversed(messages)),
+                 "time":    int(messages_datetime.timestamp())}
+        db_handle.db["members"].update_one({"member_id": member.id},
+                                           {"$push": {"quotes": quote}})
+        
+        embed = discord.Embed(title=member.display_name, color=member.accent_color) 
+        embed.add_field(name = f"\"{quote['message']}\"", value = time.ctime(quote['time']))
+        await ctx.send(embed = embed)
+
+    elif search is not None:
+        member_quotes = db_handle.db["members"].find_one({"member_id": member.id}, {"quotes":1}).get("quotes")
+        queried_quotes = [quote for quote in member_quotes if search in quote["message"]]
+        if queried_quotes:
+            embed = discord.Embed(title=member.display_name, color=member.accent_color) 
+            for quote in queried_quotes:
+                embed.add_field(name = f"\"{quote['message']}\"", value = time.ctime(quote['time']))
+            await ctx.send(embed = embed)
+
 bot.run(os.getenv("bot_key"), log_handler=None)
