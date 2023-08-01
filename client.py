@@ -41,7 +41,14 @@ except:
 music_handle = MusicHandle()
 music_handle.load_settings(config["opus-dir"])
 
-# events
+# events and helpers
+
+def get_mentioned_member(mention:str, ctx:commands.Context) -> discord.Member:
+    if re.match("<@\d+>", mention):
+        return ctx.guild.get_member(int(mention.strip("<@>")))
+    else:
+        asyncio.run_coroutine_threadsafe(ctx.send(f"{mention} is not a member."), bot.loop)
+        return
 
 @bot.event
 async def on_ready():
@@ -78,44 +85,42 @@ async def on_member_join(member):
 
 @bot.event
 async def on_message(message:str):
-    if message.author == bot.user:
+    if message.author.id == bot.user.id:
         return
     if message.channel.id == config["commands-channel-id"]:
         await bot.process_commands(message)
-
+        
 # bonking
 
 @bot.command(name = "bonk", help="bonk a person being indecorous", aliases = ("b",))
 async def bonk(ctx:commands.Context,
-               member: str = commands.parameter(description=" - the person you want to bonk.", default=None, displayed_default=None),
+               person: str = commands.parameter(description=" - the @person you want to bonk.", default=None, displayed_default=None),
                *, reason: str = commands.parameter(description=" - why they deserve to be bonked.", default="no reason")):
 
-    if not member:
+    if not person:
         return
+    
     bonk_time = round(time.time())
     bonk_reason = reason
     
-    if member == "<@" + str(bot.user.id) + ">":
-        author = "<@" + str(ctx.message.author.id) + ">"
-        await ctx.send(f"{author} tried to bonk the bot!")
+    if person == bot.user.mention:
+        await ctx.send(f"{ctx.message.author.mention} tried to bonk the bot!")
         return
     
-    if not re.match("<@\d+>", member) or not ctx.guild.get_member(int(member.strip("<@>"))):
-        await ctx.send(f"{member} is not a member.")
+    member = get_mentioned_member(person, ctx)
+    if not member:
         return
-    
-    member_id = int(member.strip("<@>"))
 
     db_handle.db["members"].update_one(
         {"member_id": ctx.message.author.id},
         {"$inc": {"bonks_given": 1},
-         "$set": {"last_bonk_given": member_id,
+         "$set": {"last_bonk_given": member.id,
                   "last_bonk_given_time": bonk_time,
                   "last_bonk_given_reason": bonk_reason}
         }
     )
     bonked_result = db_handle.db["members"].find_one_and_update(
-        {"member_id": member_id},
+        {"member_id": member.id},
         {"$inc": {"bonks_received": 1},
          "$set": {"last_bonked_by": ctx.message.author.id,
                   "last_bonked_by_time": bonk_time,
@@ -125,22 +130,22 @@ async def bonk(ctx:commands.Context,
     )
 
     bonks = bonked_result["bonks_received"] + 1
-    await ctx.send(f"{member} has been bonked {str(bonks)} time{'s' if bonks != 1 else ''}!")
+    await ctx.send(f"{member.mention} has been bonked {str(bonks)} time{'s' if bonks != 1 else ''}!")
 
 @bot.command(name = "bonkinfo", help="view a person's bonk statistics (last bonk and reason)")
 async def bonkinfo(ctx:commands.Context,
-                   member: str = commands.parameter(description=" - the person you want to look up. Leave blank to look up yourself.", default=None, displayed_default=None)):
+                   person: str = commands.parameter(description=" - the @person you want to look up. Leave blank to look up yourself.", default=None, displayed_default=None)):
     
     member_id = ctx.author.id
-    if member: 
-        if member == "<@" + str(bot.user.id) + ">":
+    if person: 
+        if person == bot.user.mention:
             await ctx.send("I cannot be bonked.")
             return
-        elif not re.match("<@\d+>", member) or not ctx.guild.get_member(int(member.strip("<@>"))):
-            await ctx.send(f"{member} is not a member.")
-            return
         else:
-            member_id = int(member.strip("<@>"))
+            member = get_mentioned_member(person, ctx)
+            if not member:
+                return
+            member_id = member.id
 
     doc = db_handle.db["members"].find_one({"member_id":member_id})
 
@@ -243,15 +248,15 @@ async def display_queue(ctx:commands.Context):
 
 # quote and comment
 
-@bot.command(name="quote", help="record the last thing a member said in a channel")
+@bot.command(name="quote", help="record and frame the last thing a member said in a channel")
 async def quote(ctx:commands.Context, 
-                member: str = commands.parameter(description= " - the person you want to quote.", default=None, displayed_default=None),
+                person: str = commands.parameter(description= " - the @person you want to quote.", default=None, displayed_default=None),
                 channel: str = commands.parameter(description= " - the channel update their quote from. Leave blank to just recall.", default=None, displayed_default=None)):
-    if member:
-        if not re.match("<@\d+>", member) or not ctx.guild.get_member(int(member.strip("<@>"))):
-            await ctx.send(f"{member} is not a member.")
-            return
-    else:
+    
+    if not person:
+        return
+    member = get_mentioned_member(person, ctx)
+    if not member:
         return
     
     quote_message = None
@@ -262,21 +267,31 @@ async def quote(ctx:commands.Context,
             return
         
         text_channel = ctx.guild.get_channel(int(channel.strip("<#>")))
-        messages = [message async for message in text_channel.history(limit=100)]
-        member_messages = []
-        for msg in messages:
-            if msg.author.id == int(member.strip("<@>")):
-                member_messages.append(msg.content)
-            elif member_messages:
+        history = [message async for message in text_channel.history(limit=100)]
+
+        messages= []
+
+        for msg in history:
+            if msg.author.id == member.id:
+                messages.append(msg.content)
+            elif messages:
                 break
+        if not messages:
+            return
         
-        quote_message = '\n'.join(reversed(member_messages))
-        db_handle.db["members"].update_one({"member_id": int(member.strip("<@>"))},{"$set":{f"quotes.{ctx.author.id}":quote_message}})
+        quote_message = '\n'.join(reversed(messages))
+        db_handle.db["members"].update_one({"member_id": member.id},
+                                           {"$set": {f"quotes.{ctx.author.id}": quote_message}})
 
     else:
-        quote_message = db_handle.db["members"].find_one({"member_id": int(member.strip("<@>"))}, {f"quotes.{ctx.author.id}"}).get("quotes").get(str(ctx.author.id))
+        query = db_handle.db["members"].find_one({"member_id": member.id}, {f"quotes.{ctx.author.id}"})
+        if query:
+            quote_message = query.get("quotes").get(str(ctx.author.id))
+        else:
+            return
 
-    embed = discord.Embed(title=ctx.guild.get_member(int(member.strip("<@>"))).display_name, color=discord.Colour.og_blurple())
+
+    embed = discord.Embed(title=member.display_name, color=member.accent_color)
     embed.add_field(name = '', value = f"\"{quote_message}\"")
     await ctx.send(embed = embed)
     
