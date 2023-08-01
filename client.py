@@ -250,7 +250,7 @@ async def display_queue(ctx:commands.Context):
 @bot.command(name="quote", help="record and frame the last thing a member said in a channel")
 async def quote(ctx:commands.Context, 
                 person: str = commands.parameter(description= " - the @person you want to quote.", default=None, displayed_default=None),
-                channel: str = commands.parameter(description= " - the channel update their quote from. Leave blank to just recall.", default=None, displayed_default=None)):
+                channel: str = commands.parameter(description= " - the #channel to update their quote from. Leave blank to just recall.", default=None, displayed_default=None)):
     
     member = get_mentioned_member(person, ctx)
     if member is None:
