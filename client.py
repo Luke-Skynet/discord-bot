@@ -184,12 +184,14 @@ async def play(ctx:commands.Context,
         await join(ctx)
         if not ctx.author.voice:
             return
-    if ctx.voice_client.is_playing():
-        ctx.voice_client.pause()
     if song is not None:
+        if ctx.voice_client.is_playing():
+            ctx.voice_client.pause()
+            music_handle.currently_playing.cleanup()
         message = await ctx.send("Working on it")
         player = music_handle.prepare_audio(song)
         ctx.voice_client.play(player, after = lambda e: _after(ctx, e))
+        music_handle.currently_playing = player
         await message.edit(content = f'Now playing: {player.title}')
     else:
         if ctx.voice_client and ctx.voice_client.is_paused():
@@ -197,12 +199,16 @@ async def play(ctx:commands.Context,
             await ctx.send("Resume Confirmed")
 
 def _after(ctx: commands.Context, e):
+    music_handle.currently_playing.cleanup()
     if music_handle.songs_in_queue():
         next_player = music_handle.load_from_queue()
         ctx.voice_client.play(next_player, after = lambda e: _after(ctx, e))
+        music_handle.currently_playing = next_player
         asyncio.run_coroutine_threadsafe(ctx.send(f"Up next: {next_player.title}"), bot.loop)
     else:
         asyncio.run_coroutine_threadsafe(ctx.send("No more songs in queue."), bot.loop)
+        music_handle.currently_playing = None
+
 
 @bot.command(name="pause", help="pause the currently playing song", aliases = ("stop","s"))
 async def pause(ctx:commands.Context):
@@ -269,8 +275,10 @@ async def start(ctx:commands.Context):
                 return
         if ctx.voice_client.is_playing():
             ctx.voice_client.pause()
+            music_handle.currently_playing.cleanup()
         player = music_handle.load_from_queue()
         ctx.voice_client.play(player, after = lambda e: _after(ctx, e))
+        music_handle.currently_playing = player
         await ctx.send(f'Now playing: {player.title}')
 
 
