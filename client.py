@@ -290,7 +290,7 @@ async def quote(ctx:commands.Context,
                 *, search: str = commands.parameter(description= "- #channel if updating, or keywords if recalling.", default=None, displayed_default=None)):
     
     member = get_mentioned_member(person, ctx)
-    if member is None:
+    if member is None or member.id == ctx.author.id:
         return
     
     if search is not None and re.match("<#\d+>", search):
@@ -304,6 +304,7 @@ async def quote(ctx:commands.Context,
 
         messages = []
         messages_datetime = None
+        
         for msg in history:
             if msg.author.id == member.id:
                 messages.append(msg.content)
@@ -315,20 +316,29 @@ async def quote(ctx:commands.Context,
     
         quote = {"message": '\n'.join(reversed(messages)),
                  "time":    int(messages_datetime.timestamp())}
-        db_handle.db["members"].update_one({"member_id": member.id},
-                                           {"$push": {"quotes": quote}})
-        
+
+        past_quote = db_handle.db["members"].find_one({"member_id": member.id, 
+                                                       "quotes": {"$elemMatch": {"time": quote["time"]}} })
+        if past_quote:
+            db_handle.db["members"].update_one({"member_id": member.id, "quotes.time": quote["time"]},
+                                               {"$set": {"quotes.$.message": quote["message"]} })
+        else:
+            db_handle.db["members"].update_one({"member_id": member.id},
+                                               {"$push": {"quotes": quote} })
+
         embed = discord.Embed(title=member.display_name, color=member.accent_color) 
         embed.add_field(name = f"\"{quote['message']}\"", value = time.ctime(quote['time']))
         await ctx.send(embed = embed)
 
     elif search is not None:
+
         member_quotes = db_handle.db["members"].find_one({"member_id": member.id}, {"quotes":1}).get("quotes")
         queried_quotes = [quote for quote in member_quotes if search in quote["message"]]
+
         if queried_quotes:
             embed = discord.Embed(title=member.display_name, color=member.accent_color) 
             for quote in queried_quotes:
-                embed.add_field(name = f"\"{quote['message']}\"", value = time.ctime(quote['time']))
+                embed.add_field(name = f"\"{quote['message']}\"", value = time.ctime(quote['time']), inline = False)
             await ctx.send(embed = embed)
 
 bot.run(os.getenv("bot_key"), log_handler=None)
