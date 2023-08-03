@@ -184,12 +184,14 @@ async def play(ctx:commands.Context,
         await join(ctx)
         if not ctx.author.voice:
             return
-    if ctx.voice_client.is_playing():
-        ctx.voice_client.pause()
     if song is not None:
+        if ctx.voice_client.is_playing():
+            ctx.voice_client.pause()
+            music_handle.currently_playing.cleanup()
         message = await ctx.send("Working on it")
         player = music_handle.prepare_audio(song)
         ctx.voice_client.play(player, after = lambda e: _after(ctx, e))
+        music_handle.currently_playing = player
         await message.edit(content = f'Now playing: {player.title}')
     else:
         if ctx.voice_client and ctx.voice_client.is_paused():
@@ -197,12 +199,16 @@ async def play(ctx:commands.Context,
             await ctx.send("Resume Confirmed")
 
 def _after(ctx: commands.Context, e):
+    music_handle.currently_playing.cleanup()
     if music_handle.songs_in_queue():
         next_player = music_handle.load_from_queue()
         ctx.voice_client.play(next_player, after = lambda e: _after(ctx, e))
+        music_handle.currently_playing = next_player
         asyncio.run_coroutine_threadsafe(ctx.send(f"Up next: {next_player.title}"), bot.loop)
     else:
         asyncio.run_coroutine_threadsafe(ctx.send("No more songs in queue."), bot.loop)
+        music_handle.currently_playing = None
+
 
 @bot.command(name="pause", help="pause the currently playing song", aliases = ("stop","s"))
 async def pause(ctx:commands.Context):
@@ -269,8 +275,10 @@ async def start(ctx:commands.Context):
                 return
         if ctx.voice_client.is_playing():
             ctx.voice_client.pause()
+            music_handle.currently_playing.cleanup()
         player = music_handle.load_from_queue()
         ctx.voice_client.play(player, after = lambda e: _after(ctx, e))
+        music_handle.currently_playing = player
         await ctx.send(f'Now playing: {player.title}')
 
 
@@ -282,7 +290,7 @@ async def quote(ctx:commands.Context,
                 *, search: str = commands.parameter(description= "- #channel if updating, or keywords if recalling.", default=None, displayed_default=None)):
     
     member = get_mentioned_member(person, ctx)
-    if member is None:
+    if member is None or member.id == ctx.author.id:
         return
     
     if search is not None and re.match("<#\d+>", search):
@@ -296,6 +304,7 @@ async def quote(ctx:commands.Context,
 
         messages = []
         messages_datetime = None
+        
         for msg in history:
             if msg.author.id == member.id:
                 messages.append(msg.content)
@@ -307,20 +316,29 @@ async def quote(ctx:commands.Context,
     
         quote = {"message": '\n'.join(reversed(messages)),
                  "time":    int(messages_datetime.timestamp())}
-        db_handle.db["members"].update_one({"member_id": member.id},
-                                           {"$push": {"quotes": quote}})
-        
+
+        past_quote = db_handle.db["members"].find_one({"member_id": member.id, 
+                                                       "quotes": {"$elemMatch": {"time": quote["time"]}} })
+        if past_quote:
+            db_handle.db["members"].update_one({"member_id": member.id, "quotes.time": quote["time"]},
+                                               {"$set": {"quotes.$.message": quote["message"]} })
+        else:
+            db_handle.db["members"].update_one({"member_id": member.id},
+                                               {"$push": {"quotes": quote} })
+
         embed = discord.Embed(title=member.display_name, color=member.accent_color) 
         embed.add_field(name = f"\"{quote['message']}\"", value = time.ctime(quote['time']))
         await ctx.send(embed = embed)
 
     elif search is not None:
+
         member_quotes = db_handle.db["members"].find_one({"member_id": member.id}, {"quotes":1}).get("quotes")
         queried_quotes = [quote for quote in member_quotes if search in quote["message"]]
+
         if queried_quotes:
             embed = discord.Embed(title=member.display_name, color=member.accent_color) 
             for quote in queried_quotes:
-                embed.add_field(name = f"\"{quote['message']}\"", value = time.ctime(quote['time']))
+                embed.add_field(name = f"\"{quote['message']}\"", value = time.ctime(quote['time']), inline = False)
             await ctx.send(embed = embed)
 
 bot.run(os.getenv("bot_key"), log_handler=None)

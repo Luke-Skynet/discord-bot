@@ -7,6 +7,7 @@ class MusicHandle:
     def __init__(self):
 
         self.play_queue: deque[YTDLSource] = deque()
+        self.currently_playing: YTDLSource = None
 
         self.ytdl_format_options = {
             'format': 'bestaudio/best',
