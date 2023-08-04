@@ -2,9 +2,6 @@ import json
 from dotenv import load_dotenv
 import os
 import sys
-import re
-import asyncio
-import time
 import logging
 
 import discord
@@ -30,8 +27,6 @@ bot = commands.Bot(
     intents = discord.Intents.all(),
     help_command = commands.DefaultHelpCommand(no_category="Commands") 
 )
-
-guild:discord.Guild = None
 discord.utils.setup_logging(level=logging.INFO, root=True)
 
 db_handle = DBhandle(in_docker = config["docker"])
@@ -90,5 +85,5 @@ async def on_message(message:str):
         return
     if message.channel.id == config["commands-channel-id"]:
         await bot.process_commands(message)
-
+        
 bot.run(os.getenv("bot_key"), log_handler=None)

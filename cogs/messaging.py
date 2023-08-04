@@ -1,17 +1,17 @@
+import re
+import time
+
 import discord
 from discord.ext import commands
 
-from parent import ParentCog
-
-import re
-import time
+from cogs.parent import ParentCog
 
 class Messaging(ParentCog):
     
     def __init__(self, bot, db_handler):
         super().__init__(bot, db_handler)
         
-    @commands.hybrid_group(name="quote", help="frame a person's ramblings from a channel or previous list")
+    @commands.hybrid_group(name="quote", help="frame a person's greatest messages from a channel or previous list")
     async def quote(self, ctx:commands.Context, 
                     person: str = commands.parameter(description= "- the @person you want to quote.", default=None, displayed_default=None),
                     *, search: str = commands.parameter(description= "- #channel if updating, or keywords if recalling.", default=None, displayed_default=None)):

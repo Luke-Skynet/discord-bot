@@ -1,10 +1,10 @@
+import logging
+import time
+
 import discord
 from discord.ext import commands
 
-from parent import ParentCog
-
-import logging
-import time
+from cogs.parent import ParentCog
 
 class Bonk(ParentCog):
     
