@@ -19,7 +19,7 @@ class ParentCog(commands.Cog):
         if mention is not None and re.match("<@\d+>", mention):
             return ctx.guild.get_member(int(mention.strip("<@>")))
         elif mention is None:
-            asyncio.run_coroutine_threadsafe(ctx.send("No @person entered"), bot.loop)
+            asyncio.run_coroutine_threadsafe(ctx.send("No @person entered"), ctx.bot.loop)
         else:
-            asyncio.run_coroutine_threadsafe(ctx.send(f"{mention} is not a member"), bot.loop)
+            asyncio.run_coroutine_threadsafe(ctx.send(f"{mention} is not a member"), ctx.bot.loop)
         return None
