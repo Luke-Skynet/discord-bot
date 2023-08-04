@@ -21,12 +21,11 @@ config: dict
 with open("config.json") as handle:
     config = json.load(handle)
 
-bot = commands.Bot(
-    command_prefix = commands.when_mentioned_or("!"), 
-    case_insensitive = True,
-    intents = discord.Intents.all(),
-    help_command = commands.DefaultHelpCommand(no_category="Commands") 
-)
+bot = commands.Bot(command_prefix = commands.when_mentioned_or("!"),
+                   case_insensitive = True,
+                   intents = discord.Intents.all(),
+                   help_command = commands.DefaultHelpCommand(no_category="Commands"))
+
 discord.utils.setup_logging(level=logging.INFO, root=True)
 
 db_handle = DBhandle(in_docker = config["docker"])
