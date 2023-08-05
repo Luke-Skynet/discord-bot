@@ -13,7 +13,7 @@ from db_handler import DBhandle
 from cogs.bonk import Bonk
 from cogs.messaging import Messaging
 from cogs.music import Music
-
+from cogs.api import API
 # load main references
 
 load_dotenv() # guild id and bot oauth key
@@ -69,6 +69,7 @@ async def on_ready():
     await bot.add_cog(Bonk(bot, db_handle))
     await bot.add_cog(Music(bot, db_handle))
     await bot.add_cog(Messaging(bot, db_handle))
+    await bot.add_cog(API(bot, db_handle))
     logging.info("cogs loaded")
 
 @bot.event
