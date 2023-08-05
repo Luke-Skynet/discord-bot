@@ -8,7 +8,7 @@ from discord.ext import commands
 
 from cogs.parent import ParentCog
 
-class API(ParentCog):
+class Web(ParentCog):
     
     def __init__(self, bot, db_handler):
         super().__init__(bot, db_handler)
