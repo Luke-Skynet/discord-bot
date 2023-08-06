@@ -13,8 +13,10 @@ class Messaging(ParentCog):
         
     @commands.hybrid_group(name="quote", help="frame a person's greatest messages from a channel or previous list")
     async def quote(self, ctx:commands.Context, 
-                    person: str = commands.parameter(description= "- the @person you want to quote.", default=None, displayed_default=None),
-                    *, search: str = commands.parameter(description= "- #channel if updating, or keywords if recalling.", default=None, displayed_default=None)):
+                    person: str = commands.parameter(description= "- the @person you want to quote.",
+                                                     default=None, displayed_default=None),
+                    *, search: str = commands.parameter(description= "- #channel if updating, or keywords if recalling.",
+                                                        default=None, displayed_default=None)):
         
         member = self.get_mentioned_member(person, ctx) 
         if member is None or member.id == ctx.author.id:
@@ -42,16 +44,16 @@ class Messaging(ParentCog):
                 return
         
             quote = {"message": '\n'.join(reversed(messages)),
-                    "time":    int(messages_datetime.timestamp())}
+                     "time":    int(messages_datetime.timestamp())}
 
             past_quote = self.db_handle.db["members"].find_one({"member_id": member.id, 
-                                                        "quotes": {"$elemMatch": {"time": quote["time"]}} })
+                                                                "quotes": {"$elemMatch": {"time": quote["time"]}} })
             if past_quote:
                 self.db_handle.db["members"].update_one({"member_id": member.id, "quotes.time": quote["time"]},
-                                                {"$set": {"quotes.$.message": quote["message"]} })
+                                                        {"$set": {"quotes.$.message": quote["message"]} })
             else:
                 self.db_handle.db["members"].update_one({"member_id": member.id},
-                                                {"$push": {"quotes": quote} })
+                                                        {"$push": {"quotes": quote} })
 
             embed = discord.Embed(title=member.display_name, color=member.accent_color) 
             embed.add_field(name = f"\"{quote['message']}\"", value = time.ctime(quote['time']))
