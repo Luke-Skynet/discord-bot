@@ -1,8 +1,5 @@
 {
     "docker": false,
     "database": "live",
-    "opus-dir": "/usr/lib/x86_64-linux-gnu/libopus.so.0",
-    "commands-channel-id": 782424648616902666,
-    "bonk-cooldown": 30,
-    "bonk-effect-time": 60
+    "opus-dir": "/usr/lib/x86_64-linux-gnu/libopus.so.0"
 }
