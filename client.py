@@ -13,10 +13,11 @@ from db_handler import DBhandle
 from cogs.bonk import Bonk
 from cogs.messaging import Messaging
 from cogs.music import Music
-from cogs.api import API
+from cogs.web import Web
+
 # load main references
 
-load_dotenv() # guild id and bot oauth key
+load_dotenv() # guild id, channel id, bot oauth key
 config: dict
 with open("config.json") as handle:
     config = json.load(handle)
@@ -25,6 +26,7 @@ bot = commands.Bot(command_prefix = commands.when_mentioned_or("!"),
                    case_insensitive = True,
                    intents = discord.Intents.all(),
                    help_command = commands.DefaultHelpCommand(no_category="Commands"))
+commands_channel_id = int(os.getenv("commands_channel_id"))
 
 discord.utils.setup_logging(level=logging.INFO, root=True)
 
@@ -42,7 +44,7 @@ except:
 @bot.event
 async def on_ready():
     logging.info("connected to Discord")
-    guild = bot.get_guild(int(os.getenv("guild")))
+    guild = bot.get_guild(int(os.getenv("guild_id")))
     if guild:
         logging.info(f"registered guild: {str(guild)}")
     else:
@@ -69,7 +71,7 @@ async def on_ready():
     await bot.add_cog(Bonk(bot, db_handle))
     await bot.add_cog(Music(bot, db_handle))
     await bot.add_cog(Messaging(bot, db_handle))
-    await bot.add_cog(API(bot, db_handle))
+    await bot.add_cog(Web(bot, db_handle))
     logging.info("cogs loaded")
 
 @bot.event
@@ -83,7 +85,7 @@ async def on_member_join(member):
 async def on_message(message:str):
     if message.author.id == bot.user.id:
         return
-    if message.channel.id == config["commands-channel-id"]:
+    if message.channel.id == commands_channel_id:
         await bot.process_commands(message)
         
 bot.run(os.getenv("bot_key"), log_handler=None)
