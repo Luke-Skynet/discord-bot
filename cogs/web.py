@@ -42,7 +42,7 @@ class Web(ParentCog):
                                                      default=None, displayed_default=None)):
         
         dex = requests.get("https://pokeapi.co/api/v2/pokedex/1").json()
-        entry = [dct for dct in dex["pokemon_entries"] if dct["pokemon_species"]["name"] == pokemon or str(dct["entry_number"]) == pokemon]
+        entry = [dct for dct in dex["pokemon_entries"] if dct["pokemon_species"]["name"] == pokemon.lower() or str(dct["entry_number"]) == pokemon]
         
         if entry:
             pokemon_species = requests.get(entry[0]["pokemon_species"]["url"]).json()
