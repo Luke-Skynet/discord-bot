@@ -62,7 +62,7 @@ class Bonk(ParentCog):
                 await ctx.send("I cannot be bonked")
                 return
             else:
-                member = ParentCog.get_mentioned_member(person, ctx)
+                member = self.get_mentioned_member(person, ctx)
                 if member is None:
                     return
                 member_id = member.id
