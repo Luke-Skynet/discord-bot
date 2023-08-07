@@ -8,7 +8,7 @@ import discord
 from discord.ext import commands
 from discord.utils import get
 
-from db_handler import DBhandle
+from db_handler import DatabaseHandle
 
 from cogs.bonk import Bonk
 from cogs.messaging import Messaging
@@ -30,10 +30,10 @@ commands_channel_id = int(os.getenv("commands_channel_id"))
 
 discord.utils.setup_logging(level=logging.INFO, root=True)
 
-db_handle = DBhandle(in_docker = config["docker"])
-db_handle.set_db(config["database"])
+db_handler = DatabaseHandle(in_docker = config["docker"])
+db_handler.set_db(config["database"])
 try:
-    db_handle.client.server_info()
+    db_handler.client.server_info()
     logging.info("connected to database")
 except:
     logging.error("database connection not established")
@@ -51,7 +51,7 @@ async def on_ready():
         logging.error("guild not found")
         sys.exit(1)
 
-    query = list(db_handle.db["members"].find({}, {"member_id"}))
+    query = list(db_handler.db["members"].find({}, {"member_id"}))
     db_members_ids = set(dct["member_id"] for dct in query)
 
     current_members_ids = [mem.id for mem in guild.members]
@@ -65,21 +65,21 @@ async def on_ready():
             new_member["member_id"] = mem_id
             new_members.append(new_member)
     if new_members:
-        db_handle.db["members"].insert_many(new_members)
+        db_handler.db["members"].insert_many(new_members)
     logging.info("member database refreshed")
     
-    await bot.add_cog(Bonk(bot, db_handle))
-    await bot.add_cog(Music(bot, db_handle))
-    await bot.add_cog(Messaging(bot, db_handle))
-    await bot.add_cog(Web(bot, db_handle))
+    await bot.add_cog(Bonk(bot, db_handler))
+    await bot.add_cog(Music(bot, db_handler))
+    await bot.add_cog(Messaging(bot, db_handler))
+    await bot.add_cog(Web(bot, db_handler))
     logging.info("cogs loaded")
 
 @bot.event
 async def on_member_join(member):
-    if not db_handle.db["members"].find({"member_id":member.id}):
+    if not db_handler.db["members"].find({"member_id":member.id}):
         new_member = json.load(open("db_member_template.json"))
         new_member["member_id"] = member.id
-        db_handle.db["members"].insert_one(new_member)
+        db_handler.db["members"].insert_one(new_member)
 
 @bot.event
 async def on_message(message:str):

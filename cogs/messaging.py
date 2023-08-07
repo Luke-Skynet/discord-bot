@@ -46,13 +46,13 @@ class Messaging(ParentCog):
             quote = {"message": '\n'.join(reversed(messages)),
                      "time":    int(messages_datetime.timestamp())}
 
-            past_quote = self.db_handle.db["members"].find_one({"member_id": member.id, 
+            past_quote = self.db_handler.db["members"].find_one({"member_id": member.id, 
                                                                 "quotes": {"$elemMatch": {"time": quote["time"]}} })
             if past_quote:
-                self.db_handle.db["members"].update_one({"member_id": member.id, "quotes.time": quote["time"]},
+                self.db_handler.db["members"].update_one({"member_id": member.id, "quotes.time": quote["time"]},
                                                         {"$set": {"quotes.$.message": quote["message"]} })
             else:
-                self.db_handle.db["members"].update_one({"member_id": member.id},
+                self.db_handler.db["members"].update_one({"member_id": member.id},
                                                         {"$push": {"quotes": quote} })
 
             embed = discord.Embed(title=member.display_name, color=member.accent_color) 
@@ -61,7 +61,7 @@ class Messaging(ParentCog):
 
         elif search is not None:
 
-            member_quotes = self.db_handle.db["members"].find_one({"member_id": member.id}, {"quotes":1}).get("quotes")
+            member_quotes = self.db_handler.db["members"].find_one({"member_id": member.id}, {"quotes":1}).get("quotes")
             queried_quotes = [quote for quote in member_quotes if search in quote["message"]]
 
             if queried_quotes:

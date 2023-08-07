@@ -17,7 +17,7 @@ class Bonk(ParentCog):
                                                     default=None, displayed_default=None),
                 *, reason: str = commands.parameter(description="- why they deserve to be bonked.",
                                                     default="no reason")):
-
+        
         bonk_time = round(time.time())
         bonk_reason = reason
         
@@ -25,11 +25,11 @@ class Bonk(ParentCog):
             await ctx.send(f"{ctx.message.author.mention} tried to bonk the bot!")
             return
         
-        member = ParentCog.get_mentioned_member(person, ctx)
+        member = self.get_mentioned_member(person, ctx)
         if member is None:
             return
 
-        self.db_handle.db["members"].update_one(
+        self.db_handler.db["members"].update_one(
             {"member_id": ctx.message.author.id},
             {"$inc": {"bonks_given": 1},
             "$set": {"last_bonk_given": member.id,
@@ -37,7 +37,7 @@ class Bonk(ParentCog):
                     "last_bonk_given_reason": bonk_reason}
             }
         )
-        bonked_result = self.db_handle.db["members"].find_one_and_update(
+        bonked_result = self.db_handler.db["members"].find_one_and_update(
             {"member_id": member.id},
             {"$inc": {"bonks_received": 1},
             "$set": {"last_bonked_by": ctx.message.author.id,
@@ -67,7 +67,7 @@ class Bonk(ParentCog):
                     return
                 member_id = member.id
 
-        doc = self.db_handle.db["members"].find_one({"member_id":member_id})
+        doc = self.db_handler.db["members"].find_one({"member_id":member_id})
 
         string = f"Bonk statistics for <@{member_id}>: \n" + \
                 f"\t They have been bonked {doc['bonks_received']} time{'s' if doc['bonks_received'] != 1 else ''}\n"
