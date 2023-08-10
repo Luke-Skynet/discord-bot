@@ -89,7 +89,8 @@ class Music(ParentCog):
             
     @commands.command(name="play", help="play a new song or resume a paused song", aliases = ("resume", "p"))
     async def play(self, ctx:commands.Context,
-                *, song: str = commands.parameter(description="- link or youtube search. Leave blank to resume current song.", default=None, displayed_default=None)):
+                *, song: str = commands.parameter(description="- link or youtube search. Leave blank to resume current song.",
+                                                  default=None, displayed_default=None)):
         if not ctx.voice_client:
             await self.join(ctx)
             if not ctx.author.voice:
@@ -133,8 +134,8 @@ class Music(ParentCog):
 
     @commands.hybrid_group(name="queue", help="add a song to the music queue", aliases = ("que","q"))
     async def queue(self, ctx:commands.Context,
-                    *, song: str = commands.parameter(description="- link or youtube search.",
-                                                      default=None, displayed_default=None)):
+                 *, song: str = commands.parameter(description="- link or youtube search.",
+                                                   default=None, displayed_default=None)):
         if song is not None:
             message = await ctx.send("Working on it")
             self.music_queue.append(YTDLSource.from_url(song, self.ytdl_format_options, self.ffmpeg_options))
@@ -155,10 +156,10 @@ class Music(ParentCog):
 
     @queue.command(name="insert", help="- add song at to a specific spot in music queue")
     async def insert(self, ctx:commands.Context,
-                    song: str = commands.parameter(description="- link or youtube search (use double quotes).", 
-                                                   default=None, displayed_default=None),
-                    place: str = commands.parameter(description="- where to add the song. Leave blank to queue normally.",
-                                                    default=None, displayed_default=None)):
+                     song: str = commands.parameter(description="- link or youtube search (use double quotes).", 
+                                                    default=None, displayed_default=None),
+                     place: str = commands.parameter(description="- where to add the song. Leave blank to queue normally.",
+                                                     default=None, displayed_default=None)):
         if song is not None and ( place is None or place.isdigit() ):
             message = await ctx.send("Working on it")
             queue_pos = 0
@@ -172,8 +173,8 @@ class Music(ParentCog):
 
     @queue.command(name="delete", help="- remove a song from the music queue")
     async def delete(self, ctx:commands.Context,
-                     *, song: str = commands.parameter(description="- name or keywords of the song to remove.",
-                                                       default=None, displayed_default=None)):
+                  *, song: str = commands.parameter(description="- name or keywords of the song to remove.",
+                                                    default=None, displayed_default=None)):
         if song is not None:
             search = song.lower()
             for entry in self.music_queue:

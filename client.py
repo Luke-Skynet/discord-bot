@@ -30,7 +30,7 @@ commands_channel_id = int(os.getenv("commands_channel_id"))
 
 discord.utils.setup_logging(level=logging.INFO, root=True)
 
-db_handler = DatabaseHandle(in_docker = config["docker"])
+db_handler = DatabaseHandle(mongo_host = config["mongo-host"], mongo_port = config["mongo-port"])
 db_handler.set_db(config["database"])
 try:
     db_handler.client.server_info()

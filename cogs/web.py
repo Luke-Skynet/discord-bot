@@ -44,7 +44,7 @@ class Web(ParentCog):
     @commands.hybrid_group(name = "pokemon", help="get a picture and pokedex entry of a pokemon", aliases=("pokedex",))
     async def pokemon(self, ctx:commands.Context,
                       search:str = commands.parameter(description= "- name or pokedex number",
-                                                       default=None, displayed_default=None)):
+                                                      default=None, displayed_default=None)):
         
         request = requests.get("https://pokeapi.co/api/v2/pokedex/1")
         if request.status_code != 200:
