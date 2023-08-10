@@ -15,8 +15,8 @@ class Messaging(ParentCog):
     async def quote(self, ctx:commands.Context, 
                     person: str = commands.parameter(description= "- the @person you want to quote.",
                                                      default=None, displayed_default=None),
-                    *, search: str = commands.parameter(description= "- #channel if updating, or keywords if recalling.",
-                                                        default=None, displayed_default=None)):
+                 *, search: str = commands.parameter(description= "- #channel if updating, or keywords if recalling.",
+                                                     default=None, displayed_default=None)):
         
         member = self.get_mentioned_member(person, ctx) 
         if member is None or member.id == ctx.author.id:

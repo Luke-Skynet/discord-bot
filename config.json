@@ -1,5 +1,6 @@
 {
-    "docker": false,
+    "mongo-host": "localhost",
+    "mongo-port": 27017,
     "database": "live",
     "opus-dir": "/usr/lib/x86_64-linux-gnu/libopus.so.0"
 }
