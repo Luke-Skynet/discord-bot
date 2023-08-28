@@ -1,5 +1,6 @@
 import re
 import time
+import asyncio
 
 import discord
 from discord.ext import commands
@@ -11,12 +12,8 @@ class Messaging(ParentCog):
     def __init__(self, bot, db_handler):
         super().__init__(bot, db_handler)
         
-    @commands.hybrid_group(name="quote", help="frame a person's greatest messages from a channel or previous list")
-    async def quote(self, ctx:commands.Context, 
-                    person: str = commands.parameter(description= "- the @person you want to quote.",
-                                                     default=None, displayed_default=None),
-                 *, search: str = commands.parameter(description= "- #channel if updating, or keywords if recalling.",
-                                                     default=None, displayed_default=None)):
+    
+    async def retrieve_quotes(self, ctx:commands.Context, person: str, search: str):
         
         member = self.get_mentioned_member(person, ctx) 
         if member is None or member.id == ctx.author.id:
@@ -26,7 +23,7 @@ class Messaging(ParentCog):
 
             text_channel = ctx.guild.get_channel(int(search.strip("<#>")))
             if text_channel is None:
-                await ctx.send(f"{search} is not a text channel")
+                asyncio.run_coroutine_threadsafe(ctx.send(f"{search} is not a text channel"), ctx.bot.loop)
                 return
                 
             history = [message async for message in text_channel.history(limit=50)]
@@ -54,18 +51,45 @@ class Messaging(ParentCog):
             else:
                 self.db_handler.db["members"].update_one({"member_id": member.id},
                                                         {"$push": {"quotes": quote} })
-
-            embed = discord.Embed(title=member.display_name, color=member.accent_color) 
-            embed.add_field(name = f"\"{quote['message']}\"", value = time.ctime(quote['time']))
-            await ctx.send(embed = embed)
+                
+            return [ quote ]
 
         elif search is not None:
 
             member_quotes = self.db_handler.db["members"].find_one({"member_id": member.id}, {"quotes":1}).get("quotes")
             queried_quotes = [quote for quote in member_quotes if search in quote["message"]]
 
-            if queried_quotes:
-                embed = discord.Embed(title=member.display_name, color=member.accent_color) 
-                for quote in queried_quotes:
-                    embed.add_field(name = f"\"{quote['message']}\"", value = time.ctime(quote['time']), inline = False)
-                await ctx.send(embed = embed)
+            return queried_quotes
+
+
+    @commands.hybrid_group(name="quote", help="frame a person's greatest messages from a channel or previous list")
+    async def quote(self, ctx:commands.Context, 
+                    person: str = commands.parameter(description= "- the @person you want to quote.",
+                                                     default=None, displayed_default=None),
+                 *, search: str = commands.parameter(description= "- #channel if updating, or keywords if recalling.",
+                                                     default=None, displayed_default=None)):
+        
+        quotes = await self.retrieve_quotes(ctx, person, search)
+        
+        if quotes:
+            member = self.get_mentioned_member(person, ctx) 
+            embed = discord.Embed(title=member.display_name, color=member.accent_color) 
+            for quote in quotes:
+                embed.add_field(name = f"\"{quote['message']}\"", value = time.ctime(quote['time']), inline = False)
+            await ctx.send(embed = embed)
+            
+    
+    @quote.command(name="sarcastic", help="- same thing as quote eXcEpT iT cOmEs OuT lIkE tHiS")
+    async def sarcastic(self, ctx:commands.Context, 
+                    person: str = commands.parameter(description= "- the @person you want to quote.",
+                                                     default=None, displayed_default=None),
+                 *, search: str = commands.parameter(description= "- #channel if updating, or keywords if recalling.",
+                                                     default=None, displayed_default=None)):
+        
+        quotes = await self.retrieve_quotes(ctx, person, search)
+        
+        if quotes:
+            for quote in quotes:
+                no_sarc_message = quote['message']
+                sarcastic_message = ''.join([ char.lower() if i % 2 == 1 else char.upper() for i, char in enumerate(no_sarc_message) ])
+                await ctx.send(sarcastic_message)
