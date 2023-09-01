@@ -90,6 +90,6 @@ class Messaging(ParentCog):
         
         if quotes:
             for quote in quotes:
-                no_sarc_message = quote['message']
-                sarcastic_message = ''.join([ char.lower() if i % 2 == 1 else char.upper() for i, char in enumerate(no_sarc_message) ])
+                message = quote['message']
+                sarcastic_message = ''.join([ c.lower() if i % 2 == 1 else c.upper() for i, c in enumerate(message) ])
                 await ctx.send(sarcastic_message)
