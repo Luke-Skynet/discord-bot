@@ -18,15 +18,12 @@ from cogs.web import Web
 # load main references
 
 load_dotenv() # guild id, channel id, bot oauth key
-config: dict
-with open("config.json") as handle:
-    config = json.load(handle)
+config = json.load(open("config.json")) # database configs and opus sound dir location
 
 bot = commands.Bot(command_prefix = commands.when_mentioned_or("!"),
                    case_insensitive = True,
                    intents = discord.Intents.all(),
                    help_command = commands.DefaultHelpCommand(no_category="Commands"))
-commands_channel_id = int(os.getenv("commands_channel_id"))
 
 discord.utils.setup_logging(level=logging.INFO, root=True)
 
@@ -51,8 +48,8 @@ async def on_ready():
         logging.error("guild not found")
         sys.exit(1)
 
-    query = list(db_handler.db["members"].find({}, {"member_id"}))
-    db_members_ids = set(dct["member_id"] for dct in query)
+    db_members = list(db_handler.db["members"].find({}, {"member_id"}))
+    db_members_ids = set(dct["member_id"] for dct in db_members)
 
     current_members_ids = [mem.id for mem in guild.members]
 
@@ -85,7 +82,7 @@ async def on_member_join(member):
 async def on_message(message:str):
     if message.author.id == bot.user.id:
         return
-    if message.channel.id == commands_channel_id:
+    if message.channel.id == int(os.getenv("commands_channel_id")):
         await bot.process_commands(message)
         
 bot.run(os.getenv("bot_key"), log_handler=None)
