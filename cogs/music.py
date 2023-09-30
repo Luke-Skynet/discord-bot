@@ -111,15 +111,15 @@ class Music(ParentCog):
 
     def _after(self, ctx: commands.Context, e):
         self.currently_playing.cleanup()
-        if self.music_queue:
+        self.currently_playing = None
+        if self.music_queue and ctx.voice_client is not None:
             next_player = self.music_queue.popleft()
             ctx.voice_client.play(next_player, after = lambda e: self._after(ctx, e))
             self.currently_playing = next_player
             asyncio.run_coroutine_threadsafe(ctx.send(f"Up next: {next_player.title}"), self.bot.loop)
-        else:
+        elif ctx.voice_client is not None:
             asyncio.run_coroutine_threadsafe(ctx.send("No more songs in queue."), self.bot.loop)
-            self.currently_playing = None
-
+            
     @commands.command(name="pause", help="pause the currently playing song", aliases = ("stop","s"))
     async def pause(self, ctx:commands.Context):
         if ctx.voice_client and ctx.voice_client.is_playing():
