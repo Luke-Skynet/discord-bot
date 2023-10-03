@@ -1,0 +1,25 @@
+version: '0'
+services:
+  mongodb:
+    image: mongo:latest
+    container_name: bot-mongo-db
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb-data:/data/db
+    networks:
+      - mynetwork
+
+  discord-bot:
+    image: discord-bot:latest
+    container_name: bot-client-py
+    depends_on:
+      - bot-mongo-db
+    networks:
+      - mynetwork
+
+volumes:
+  mongodb-data:
+
+networks:
+  mynetwork:
