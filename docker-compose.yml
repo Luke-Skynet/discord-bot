@@ -14,9 +14,12 @@ services:
     image: discord-bot:latest
     container_name: bot-client-py
     depends_on:
-      - bot-mongo-db
+      - mongodb
     networks:
       - mynetwork
+    stdin_open: true
+    tty: true
+
 
 volumes:
   mongodb-data:

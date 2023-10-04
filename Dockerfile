@@ -13,7 +13,7 @@ RUN apt update && apt upgrade -y \
 #needed to autoinstall the rest in a docker env
 ARG DEBIAN_FRONTEND=noninteractive
 
-#install python libraries before mongodb
+#install python libraries
 COPY requirements.txt .
 RUN pip install -r requirements.txt
 
