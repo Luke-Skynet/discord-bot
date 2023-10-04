@@ -6,7 +6,7 @@ services:
     ports:
       - "27017:27017"
     volumes:
-      - mongodb-data:/data/db
+      - myvolume:/data/db
     networks:
       - mynetwork
 
@@ -22,7 +22,7 @@ services:
 
 
 volumes:
-  mongodb-data:
+  myvolume:
 
 networks:
   mynetwork:
