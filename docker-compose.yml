@@ -1,8 +1,8 @@
 version: '0'
 services:
-  mongodb:
+  mongo:
     image: mongo:latest
-    container_name: bot-mongo-db
+    container_name: bot-mongo
     ports:
       - "27017:27017"
     volumes:
@@ -12,9 +12,9 @@ services:
 
   discord-bot:
     image: discord-bot:latest
-    container_name: bot-client-py
+    container_name: bot-client
     depends_on:
-      - mongodb
+      - mongo
     networks:
       - mynetwork
     stdin_open: true
