@@ -11,6 +11,8 @@ services:
       - mynetwork
 
   discord-bot:
+    build:
+      context: .
     image: discord-bot:latest
     container_name: bot-client
     depends_on:
@@ -19,6 +21,7 @@ services:
       - mynetwork
     stdin_open: true
     tty: true
+    entrypoint: ["bash", "-c", "cd /root/discord-bot && python3 client.py"]
 
 
 volumes:
