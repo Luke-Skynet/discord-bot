@@ -25,7 +25,7 @@ Currently, it only supports one client per server. If you would like to run it o
 3. Clone this repository
 4. Create a .env file with the following fields:    
 &nbsp;&nbsp;&nbsp;&nbsp;`guild_id= (found by rightclicking server name in the top left of your server in discord)`     
-&nbsp;&nbsp;&nbsp;&nbsp;`commands_channel_id= (found by right clicking the channel in the left menu of your server in discord)`      
+&nbsp;&nbsp;&nbsp;&nbsp;`commands_channel_id= (found by right clicking the channel in your server in discord)`      
 &nbsp;&nbsp;&nbsp;&nbsp;`bot_key= (found by generating a secret key in the Discord Dev Portal)`      
 5. After completing these steps, run the bot with the following command inside the repository directory:    
 &nbsp;&nbsp;&nbsp;&nbsp;`docker-compose up`
