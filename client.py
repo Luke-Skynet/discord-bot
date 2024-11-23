@@ -72,12 +72,14 @@ async def on_ready():
     
     logging.info("cogs loaded")
 
-    await bot.tree.sync(guild=guild)
-    logging.info("tree synced")
-
-@bot.hybrid_command(name="test")
-async def test(ctx):
-    await ctx.send("This is the tree command!")
+@bot.command(name="sync", help="bot owner only - sync bot commands with server")
+async def sync(ctx):
+    if ctx.author.id != int(os.getenv("owner_id")):
+        await ctx.send("You do not have permission to use this command")
+    else:
+        guild = bot.get_guild(int(os.getenv("guild_id")))
+        await bot.tree.sync(guild=guild)
+        await ctx.send("Synced commands")
 
 @bot.event # add member to db on join
 async def on_member_join(member):

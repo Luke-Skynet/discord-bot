@@ -11,11 +11,11 @@ class Bonk(ParentCog):
     def __init__(self, bot, db_handler):
         super().__init__(bot, db_handler)
     
-    @commands.command(name = "bonk", help="bonk a person being indecorous", aliases = ("b",))
+    @commands.hybrid_command(name = "bonk", help="bonk a person being indecorous", aliases = ("b",))
     async def bonk(self, ctx:commands.Context,
                    person: str = commands.parameter(description="- the @person you want to bonk.",
                                                     default=None, displayed_default=None),
-                   reason: str = commands.parameter(description="- why they deserve to be bonked.",
+                   reason: str = commands.parameter(description="- why you bonked them.",
                                                     default="no reason")):
         
         bonk_time = round(time.time())
@@ -51,7 +51,7 @@ class Bonk(ParentCog):
         await ctx.send(f"{member.mention} has been bonked {str(bonks)} time{'s' if bonks != 1 else ''}!")
 
 
-    @commands.command(name = "bonkinfo", help="view a person's bonk statistics (last bonk and reason)")
+    @commands.hybrid_command(name = "bonkinfo", help="view a person's bonk statistics (last bonk and reason)")
     async def bonkinfo(self, ctx:commands.Context,
                        person: str = commands.parameter(description="- the @person you want to look up. Leave blank to look up yourself.",
                                                         default=None, displayed_default=None)):

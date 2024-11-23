@@ -13,8 +13,9 @@ class Web(ParentCog):
     def __init__(self, bot, db_handler):
         super().__init__(bot, db_handler)
 
-    @commands.hybrid_group(name = 'pokemon', help="get a picture and pokedex entry of a pokemon")
-    async def pokemon(self, ctx:commands.Context, search:str):
+    @commands.hybrid_command(name = 'pokemon', help="get a picture and pokedex entry of a pokemon")
+    async def pokemon(self, ctx:commands.Context, 
+                            search:str = commands.parameter(description="- name or pokedex number of the pokemon you want to search for.")):
         
         message = await ctx.defer()
         request = requests.get("https://pokeapi.co/api/v2/pokedex/1")

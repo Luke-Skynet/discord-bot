@@ -62,7 +62,7 @@ class Messaging(ParentCog):
             return queried_quotes
 
 
-    @commands.hybrid_group(name="quote", help="frame a person's greatest messages from a channel or previous list")
+    @commands.hybrid_command(name="quote", help="frame a person's greatest messages from a channel or previous list")
     async def quote(self, ctx:commands.Context, 
                     person: str = commands.parameter(description= "- the @person you want to quote.",
                                                      default=None, displayed_default=None),
@@ -77,19 +77,3 @@ class Messaging(ParentCog):
             for quote in quotes:
                 embed.add_field(name = f"\"{quote['message']}\"", value = time.ctime(quote['time']), inline = False)
             await ctx.send(embed = embed)
-            
-    
-    @quote.command(name="sarcastic", help="- same thing as quote eXcEpT iT cOmEs OuT lIkE tHiS")
-    async def sarcastic(self, ctx:commands.Context, 
-                    person: str = commands.parameter(description= "- the @person you want to quote.",
-                                                     default=None, displayed_default=None),
-                    search: str = commands.parameter(description= "- #channel if updating, or keywords if recalling.",
-                                                     default=None, displayed_default=None)):
-        
-        quotes = await self.retrieve_quotes(ctx, person, search)
-        
-        if quotes:
-            for quote in quotes:
-                message = quote['message']
-                sarcastic_message = ''.join([ c.lower() if i % 2 == 1 else c.upper() for i, c in enumerate(message) ])
-                await ctx.send(sarcastic_message)
