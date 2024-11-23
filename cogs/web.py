@@ -12,43 +12,11 @@ class Web(ParentCog):
     
     def __init__(self, bot, db_handler):
         super().__init__(bot, db_handler)
-        self.animals = ["cat","dog","bird","panda","redpanda","koala",
-                        "fox","dolphin","kangaroo","bunny","lion","bear",
-                        "frog","duck","penguin","axolotl","capybara"]
 
-
-    @commands.hybrid_group(name = "animal", help="show a random picture and fact about an animal")
-    async def animal(self, ctx:commands.Context,
-                     search:str = commands.parameter(description= "- the specific animal you want (cat, dog, etc.)",
-                                                     default=None, displayed_default=None)):
+    @commands.hybrid_group(name = 'pokemon', help="get a picture and pokedex entry of a pokemon")
+    async def pokemon(self, ctx:commands.Context, search:str):
         
-        request = requests.get(f"https://api.animality.xyz/all/{search or random.choice(self.animals)}")
-        if request.status_code != 200:
-            logging.error(f"status code {request.status_code} received on animal request: {request.request.url}")
-            return
-        
-        dct = request.json()
-        
-        logging.info(f"{ctx.author.name} successfully requested animal: {search}")
-        
-        embed = discord.Embed(description=dct["fact"])
-        embed.set_image(url = dct["link"])
-        
-        await ctx.send(embed = embed)
-     
-     
-    @animal.command(name = "list", help="- show list of animals that that can be called", aliases = ("help",))
-    async def which_animals(self, ctx:commands.Context):
-        
-        logging.info(f"{ctx.author.name} successfully requested animal list")
-        await ctx.send(f"Here is the list of animals you can ask for:\n {self.animals}")
-    
-    
-    @commands.hybrid_group(name = "pokemon", help="get a picture and pokedex entry of a pokemon", aliases=("pokedex",))
-    async def pokemon(self, ctx:commands.Context,
-                   *, search:str = commands.parameter(description= "- name or pokedex number",
-                                                      default=None, displayed_default=None)):
-        
+        message = await ctx.defer()
         request = requests.get("https://pokeapi.co/api/v2/pokedex/1")
         if request.status_code != 200:
             logging.error(f"status code {request.status_code} received on pokedex request")

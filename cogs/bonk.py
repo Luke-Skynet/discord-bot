@@ -15,7 +15,7 @@ class Bonk(ParentCog):
     async def bonk(self, ctx:commands.Context,
                    person: str = commands.parameter(description="- the @person you want to bonk.",
                                                     default=None, displayed_default=None),
-                *, reason: str = commands.parameter(description="- why they deserve to be bonked.",
+                   reason: str = commands.parameter(description="- why they deserve to be bonked.",
                                                     default="no reason")):
         
         bonk_time = round(time.time())

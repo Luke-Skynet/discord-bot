@@ -8,20 +8,6 @@
     "last_bonk_given":null,
     "last_bonk_given_time":null,
     "last_bonk_given_reason":null,
-    "bonk_reasons":[
-
-    ],
-    "medals":[
-
-    ],
-    "themesong":null,
-    "playlist":{
-
-    },
-    "quotes":[
-
-    ],
-    "comments":{
-
-    }
+    "bonk_reasons":[],
+    "quotes":[]
 }

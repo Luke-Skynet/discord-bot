@@ -68,7 +68,7 @@ class Music(ParentCog):
             "before_options": "-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5",
         }
 
-    @commands.command(name='join', help="add bot to your current channel", aliases = ("come", "j"))
+    @commands.hybrid_command(name='join', help="add bot to your current channel", aliases = ("come", "j"))
     async def join(self, ctx:commands.Context):
         if ctx.author.voice is None:
             await ctx.send("You are not connected to a voice channel")
@@ -80,16 +80,16 @@ class Music(ParentCog):
                 await channel.connect()
             await ctx.send(f"Joining channel: <#{channel.id}>")
 
-    @commands.command(name='leave', help="disconnect bot from current channel", aliases = ("quit","go", "exit", "l"))
+    @commands.hybrid_command(name='leave', help="disconnect bot from current channel", aliases = ("quit","go", "exit", "l"))
     async def leave(self, ctx:commands.Context):
         if ctx.voice_client:
             channel_id = ctx.voice_client.channel.id
             await ctx.voice_client.disconnect()
             await ctx.send(f"Leaving channel: <#{channel_id}>")
             
-    @commands.command(name="play", help="play a new song or resume a paused song", aliases = ("resume", "p"))
+    @commands.hybrid_command(name="play", help="play a new song or resume a paused song", aliases = ("resume", "p"))
     async def play(self, ctx:commands.Context,
-                *, song: str = commands.parameter(description="- link or youtube search. Leave blank to resume current song.",
+                   song: str = commands.parameter(description="- link or youtube search. Leave blank to resume current song.",
                                                   default=None, displayed_default=None)):
         if not ctx.voice_client:
             await self.join(ctx)
@@ -120,13 +120,13 @@ class Music(ParentCog):
         elif ctx.voice_client is not None:
             asyncio.run_coroutine_threadsafe(ctx.send("No more songs in queue."), self.bot.loop)
             
-    @commands.command(name="pause", help="pause the currently playing song", aliases = ("stop","s"))
+    @commands.hybrid_command(name="pause", help="pause the currently playing song", aliases = ("stop","s"))
     async def pause(self, ctx:commands.Context):
         if ctx.voice_client and ctx.voice_client.is_playing():
             ctx.voice_client.pause()
             await ctx.send("Pause Confirmed")
             
-    @commands.command(name="skip", help="play the next song in the music queue, if there is one", aliases = ("next","n"))
+    @commands.hybrid_command(name="skip", help="play the next song in the music queue, if there is one", aliases = ("next","n"))
     async def skip(self, ctx:commands.Context):
         if ctx.voice_client and ctx.voice_client.is_playing():
             await ctx.send(f"Skipping {ctx.voice_client.source.title}")
@@ -134,7 +134,7 @@ class Music(ParentCog):
 
     @commands.hybrid_group(name="queue", help="add a song to the music queue", aliases = ("que","q"))
     async def queue(self, ctx:commands.Context,
-                 *, song: str = commands.parameter(description="- link or youtube search.",
+                    song: str = commands.parameter(description="- link or youtube search.",
                                                    default=None, displayed_default=None)):
         if song is not None:
             message = await ctx.send("Working on it")
@@ -173,7 +173,7 @@ class Music(ParentCog):
 
     @queue.command(name="delete", help="- remove a song from the music queue")
     async def delete(self, ctx:commands.Context,
-                  *, song: str = commands.parameter(description="- name or keywords of the song to remove.",
+                     song: str = commands.parameter(description="- name or keywords of the song to remove.",
                                                     default=None, displayed_default=None)):
         if song is not None:
             search = song.lower()
@@ -192,7 +192,7 @@ class Music(ParentCog):
         else:
             await self.queue(ctx, song = ' '.join(ctx.message.content.split()[1:]))
             
-    @commands.command(name="start", help="start playing songs from the music queue", aliases = ("startq", "begin", "beginq"))
+    @commands.hybrid_command(name="start", help="start playing songs from the music queue", aliases = ("startq", "begin", "beginq"))
     async def start(self, ctx:commands.Context):
         if self.music_queue:
             if not ctx.voice_client:
