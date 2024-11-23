@@ -66,7 +66,7 @@ class Messaging(ParentCog):
     async def quote(self, ctx:commands.Context, 
                     person: str = commands.parameter(description= "- the @person you want to quote.",
                                                      default=None, displayed_default=None),
-                 *, search: str = commands.parameter(description= "- #channel if updating, or keywords if recalling.",
+                    search: str = commands.parameter(description= "- #channel if updating, or keywords if recalling.",
                                                      default=None, displayed_default=None)):
         
         quotes = await self.retrieve_quotes(ctx, person, search)
@@ -83,7 +83,7 @@ class Messaging(ParentCog):
     async def sarcastic(self, ctx:commands.Context, 
                     person: str = commands.parameter(description= "- the @person you want to quote.",
                                                      default=None, displayed_default=None),
-                 *, search: str = commands.parameter(description= "- #channel if updating, or keywords if recalling.",
+                    search: str = commands.parameter(description= "- #channel if updating, or keywords if recalling.",
                                                      default=None, displayed_default=None)):
         
         quotes = await self.retrieve_quotes(ctx, person, search)

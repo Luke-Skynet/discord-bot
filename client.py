@@ -20,7 +20,7 @@ from cogs.web import Web
 load_dotenv() # guild id, channel id, bot oauth key
 config = json.load(open("config.json")) # database configs and opus sound dir location
 
-bot = commands.Bot(command_prefix = commands.when_mentioned_or("!"),
+bot = commands.Bot(command_prefix = commands.when_mentioned_or("/"),
                    case_insensitive = True,
                    intents = discord.Intents.all(),
                    help_command = commands.DefaultHelpCommand(no_category="Commands"))
@@ -69,8 +69,15 @@ async def on_ready():
     await bot.add_cog(Music(bot, db_handler))
     await bot.add_cog(Messaging(bot, db_handler))
     await bot.add_cog(Web(bot, db_handler))
+    
     logging.info("cogs loaded")
 
+    await bot.tree.sync(guild=guild)
+    logging.info("tree synced")
+
+@bot.hybrid_command(name="test")
+async def test(ctx):
+    await ctx.send("This is the tree command!")
 
 @bot.event # add member to db on join
 async def on_member_join(member):
