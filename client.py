@@ -82,7 +82,7 @@ async def sync(ctx):
         logging.info(f"syncing commands for guild: {str(guild)}")
         commands_synced = []
         try:
-            commands_synced = await bot.tree.sync()
+            commands_synced = await bot.tree.sync() + await bot.tree.sync(guild = guild)
         except Exception as e:
             logging.error(f"error syncing commands: {e}")
         else:
@@ -107,17 +107,18 @@ async def on_message(message:str):
 
 
 @bot.event # disconnect music player after everyone leaves and music is finished
-async def on_voice_state_update(member, before, after):
+async def on_voice_state_update(member: discord.member, before: discord.VoiceState, after: discord.VoiceState):
     
-    if member.guild.voice_client and before.channel and after.channel is None and \
+    if member.id != bot.user.id and member.guild.voice_client and \
+       before.channel is not None and after.channel is None and \
        member.guild.voice_client.channel.id == before.channel.id:
            
         while member.guild.voice_client.is_playing() and len(member.guild.voice_client.channel.members) - 1 == 0:
-            await asyncio.sleep(1)
+            await asyncio.sleep(3)
         if not member.guild.voice_client.is_playing() and len(member.guild.voice_client.channel.members) - 1 == 0:
             commands_channel = bot.get_channel(int(os.getenv("commands_channel_id")))
             await member.guild.voice_client.disconnect()
-            await commands_channel.send(f"Leaving channel: <#{commands_channel.id}>")
+            await commands_channel.send(f"Leaving: <#{before.channel.id}>")
      
 
 bot.run(os.getenv("bot_key"), log_handler=None)

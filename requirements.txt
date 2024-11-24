@@ -7,7 +7,7 @@ Brotli==1.0.9
 certifi==2023.7.22
 cffi==1.15.1
 charset-normalizer==3.2.0
-discord.py==2.3.1
+discord.py==2.4.0
 dnspython==2.4.0
 exceptiongroup==1.1.2
 frozenlist==1.4.0
