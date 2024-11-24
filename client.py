@@ -71,6 +71,7 @@ async def on_ready():
     await bot.add_cog(Web(bot, db_handler))
     
     logging.info("cogs loaded")
+    
 
 @bot.command(name="sync", help="bot owner only - sync bot commands with server")
 async def sync(ctx):
@@ -78,8 +79,16 @@ async def sync(ctx):
         await ctx.send("You do not have permission to use this command")
     else:
         guild = bot.get_guild(int(os.getenv("guild_id")))
-        await bot.tree.sync(guild=guild)
-        await ctx.send("Synced commands")
+        logging.info(f"syncing commands for guild: {str(guild)}")
+        commands_synced = []
+        try:
+            commands_synced = await bot.tree.sync()
+        except Exception as e:
+            logging.error(f"error syncing commands: {e}")
+        else:
+            logging.info(f"synced commands: {commands_synced}")
+            await ctx.send("Synced commands")
+
 
 @bot.event # add member to db on join
 async def on_member_join(member):
