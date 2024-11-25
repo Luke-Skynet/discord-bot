@@ -48,7 +48,6 @@ class Music(ParentCog):
 
         with open("config.json") as handle:
             discord.opus.load_opus(json.load(handle)["opus-dir"])
-        yt_dlp.utils.bug_reports_message = lambda: ''
         
         self.ytdl_format_options: dict = {
             'format': 'bestaudio/best',
