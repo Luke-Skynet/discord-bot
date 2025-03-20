@@ -22,19 +22,34 @@ class YTDLSource(discord.PCMVolumeTransformer):
         self.title: str = data.get('title')
 
     @classmethod
-    def from_url(cls, url, ytdl_format_options, ffmpeg_options):
+    def from_url(cls, url):
+        
+        ytdl_format_options: dict = {
+            'format': 'bestaudio/best',
+            'extract-audio': True,
+            'noplaylist': True,
+            'default_search': 'auto',
+            'no-part': True,
+            'audio-quality': 0,
+            'concurrent-fragments': 5,
+            'restrict-filenames': True
+        }
+        
+        ffmpeg_options: dict = {
+            'options': '-vn',
+            "before_options": "-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5",
+        }
         
         data =  yt_dlp.YoutubeDL(ytdl_format_options).extract_info(url, download=False)
 
         if 'entries' in data:
             data = data['entries'][0]
         filename = data['url']
-
-        ffmpeg_options_instance = dict(ffmpeg_options)
+        
         if data.get('is_live'):
-            ffmpeg_options_instance["before_options"] = "-http_persistent 0 -reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5"
+            ffmpeg_options["before_options"] = "-http_persistent 0 -reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5"
 
-        return cls(discord.FFmpegPCMAudio(filename, **ffmpeg_options_instance), data=data)
+        return cls(discord.FFmpegPCMAudio(filename, **ffmpeg_options), data=data)
 
 
 class Music(ParentCog):
@@ -48,17 +63,6 @@ class Music(ParentCog):
 
         with open("config.json") as handle:
             discord.opus.load_opus(json.load(handle)["opus-dir"])
-        
-        self.ytdl_format_options: dict = {
-            'format': 'bestaudio/best',
-            'noplaylist': True,
-            'default_search': 'auto'
-        }
-        
-        self.ffmpeg_options: dict = {
-            'options': '-vn',
-            "before_options": "-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5",
-        }
                 
 
     @commands.hybrid_command(name='join', help="add bot to your current channel")
@@ -93,21 +97,21 @@ class Music(ParentCog):
 
     @commands.hybrid_command(name="play", help="play a new song or resume a paused song")
     async def play(self, ctx:commands.Context,
-                   song: str = commands.parameter(description="- link or youtube search. Leave blank to resume current song.",
+                   search: str = commands.parameter(description="- link or youtube search. Leave blank to resume current song.",
                                                   default=None, displayed_default=None)):
         
         await self._join_if_not_connected(ctx)
         if not self._bot_in_user_channel(ctx):
             return
         
-        if song is not None:
+        if search is not None:
             
             if self.currently_playing is not None:
                 self._stop(ctx)
                 
             message = await ctx.send("Working on it")
             
-            player = YTDLSource.from_url(song, self.ytdl_format_options, self.ffmpeg_options)
+            player = YTDLSource.from_url(search)
             self._play(ctx, player)
             
             await message.edit(content = f'Now playing: {player.title}')
@@ -158,16 +162,16 @@ class Music(ParentCog):
 
     @commands.hybrid_command(name="queue", help="add a song to the music queue")
     async def queue(self, ctx:commands.Context,
-                    song: str = commands.parameter(description="- link or youtube search",
+                    search: str = commands.parameter(description="- link or youtube search",
                                                    default=None, displayed_default=None)):
         if not self._bot_in_user_channel(ctx):
             await ctx.send("You are not in the voice channel")
             
-        elif song is not None:
+        elif search is not None:
             
             message = await ctx.send("Working on it")
             
-            player = YTDLSource.from_url(song, self.ytdl_format_options, self.ffmpeg_options)
+            player = YTDLSource.from_url(search)
             self.music_queue.append(player)
             
             await message.edit(content = f"Queued: {player.title}")
